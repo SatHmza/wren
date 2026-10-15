@@ -985,8 +985,9 @@ function build(saved){
     carve(()=>{g.beginPath();g.ellipse(256,20,90,16,0,0,6.28);g.stroke();for(let k=0;k<9;k++){g.beginPath();g.arc(180+k*19,20,3,0,6.28);g.stroke();}
       for(let k=0;k<14;k++){g.beginPath();g.moveTo(170+k*13,38);g.lineTo(150+k*16,60+(k%3)*10);g.stroke();}});
     const t=new THREE.CanvasTexture(c);
-    const m=mesh(new THREE.PlaneGeometry(10,5).rotateY(Math.PI/2),new THREE.MeshLambertMaterial({map:t}),15.1,3.2,30,cave,false);
-    CAVE_OBST.push([14,15.3,24.5,35.5]);
+    mesh(new THREE.BoxGeometry(10.8,5.8,.6),caveFloorMat,22,3.2,17.05,cave);
+    mesh(new THREE.PlaneGeometry(10,5),new THREE.MeshLambertMaterial({map:t}),22,3.2,17.37,cave,false);
+    CAVE_OBST.push([16.4,27.6,15,17.5]);
   }
   /* miner camp */
   {
@@ -1228,7 +1229,7 @@ function build(saved){
   const INTER=[
     {cave:true,x:-3,z:4,label:'Pick up your lantern',ok:()=>!F.lantern,use:()=>{F.lantern=true;F.lanternOn=true;lanternProp.visible=false;handLantern.visible=true;sfx.clank(.4);say(['There you are.','The old mine lift should still reach the surface.']);}},
     {cave:true,x:-6.2,z:0,label:'Look at the rubble',ok:()=>true,use:()=>say(['The way under the mountains. Buried.','I was trying to reach the tower from below. I\'ll have to go over the mountains instead.'])},
-    {cave:true,x:16,z:30,label:'Read the carving',ok:()=>true,use:()=>read('Carving',['An old carving. Six figures stand around a tower, holding hands.','Above them hangs something with too many eyes. Lines of ash fall from it like rain.','Someone has scratched a line through each of the six. All but the smallest.'])},
+    {cave:true,x:22,z:19,label:'Read the carving',ok:()=>true,use:()=>read('Carving',['An old carving. Six figures stand around a tower, holding hands.','Above them hangs something with too many eyes. Lines of ash fall from it like rain.','Someone has scratched a line through each of the six. All but the smallest.'])},
     {cave:true,x:25.5,z:63.8,label:'Read the miner\'s journal',ok:()=>true,use:()=>read('Miner\'s journal',['Day 31 since the tower caught fire. The ash falls even down here now. The foreman says the gods will put it out themselves.','Day 40. Nobody goes near the mountains anymore. Except the keeper. Every season she tries a new way through.','Day 41. We\'re leaving. Took the crank off the lift so nothing can follow us up. If you need it, it\'s on the crate. Sorry.'])},
     {cave:true,x:30.5,z:61,label:'Take the lift crank',ok:()=>!F.crank,use:()=>{F.crank=true;crankProp.visible=false;sfx.clank(.6);say(['This should fit the lift.']);}},
     {cave:true,x:63.4,z:37,label:()=>F.crank?'Fit the crank and ride up':'Use the lift',ok:()=>state==='play',use:()=>{if(!F.crank){F.triedLift=true;sfx.clank(.5);say(['The crank is missing.','The miners kept their tools somewhere close. Maybe up the side passage.']);}else startRide();}},
