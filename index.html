@@ -147,6 +147,9 @@ kbd{font-family:var(--font-ui);font-size:11px;padding:3px 7px;border:1px solid v
 .cmp-item.card{color:var(--ink);font-family:var(--font-display);font-size:13px}
 .cmp-item.tick{width:1px;height:7px;background:var(--line)}
 .cmp-item.mark{width:8px;height:8px;transform:translate(-50%,-50%) rotate(45deg);border:1px solid var(--amber);background:rgba(240,180,64,.3)}
+.cmp-item.mark.rumor{width:30px;height:5px;transform:translate(-50%,-50%);border:1px dashed var(--amber);background:transparent}
+.bark{position:fixed;left:0;top:0;z-index:20;pointer-events:none;font-size:13px;color:var(--ink);background:rgba(11,16,12,.8);border:1px solid var(--line);padding:5px 10px;white-space:nowrap}
+.bark.husk{color:#b3aca4;font-style:italic;background:transparent;border-color:transparent;text-shadow:0 1px 4px #000}
 .cmp-center{position:absolute;left:50%;top:0;width:2px;height:6px;margin-left:-1px;background:var(--amber)}
 .area-name{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);text-shadow:0 1px 4px rgba(0,0,0,.8)}
 .banner.area h2{font-size:clamp(30px,5.4vw,66px);color:var(--ink);letter-spacing:.05em}
@@ -173,6 +176,7 @@ kbd{font-family:var(--font-ui);font-size:11px;padding:3px 7px;border:1px solid v
 .scard.locked{cursor:default}.scard.locked img{filter:brightness(0) opacity(.35)}
 .scard .nm{font-family:var(--font-display);font-size:13px;line-height:1.2}
 .scard .st{font-size:11px;color:var(--dim)}
+.scard .st.tr{color:var(--amber)}
 .scard .lv{position:absolute;top:6px;left:8px;font-size:11px;color:var(--amber)}
 .scard .eqb{position:absolute;top:6px;right:8px;font-size:10px;letter-spacing:.12em;color:var(--on-amber);background:var(--amber);padding:1px 5px}
 .inv-sel{margin:0;font-size:13px;color:var(--dim);min-height:2.6em}
@@ -680,7 +684,7 @@ function build(saved){
   const SUN_WARM=new THREE.Color('#ffa868'),SUN_WHITE=new THREE.Color('#fff0d2'),MOON_C=new THREE.Color('#9fb4ff');
   let nightF=0,dayF=1;
 
-  let TERRAIN_COL=null;
+  let TERRAIN_COL=null,ASHW=null,ORIGC=null,TERRAIN_GEO=null,WATERM=null;
   /* ===== terrain ===== */
   HGRID=new Float32Array((TN+1)*(TN+1));
   {
@@ -689,14 +693,14 @@ function build(saved){
     const C=h=>new THREE.Color(h);
     const gA=C('#3d6627'),gB=C('#66953c'),forest=C('#2b4c1e'),dirt=C('#80603d'),dirt2=C('#5f4630'),mud=C('#5a4b36'),bed=C('#34473f'),rock=C('#6f6c64'),rock2=C('#56534d'),snow=C('#e6eaee'),ash=C('#3e3734');
     const goldA=C('#7c8a3a'),goldB=C('#a99c4a'),ashA=C('#47413d'),ashB=C('#6b635c'),lava=C('#c4532a'),snowA=C('#dfe6eb'),snowB=C('#b9c4cd');
-    const c=new THREE.Color(),tmp=new THREE.Color();
+    const c=new THREE.Color(),tmp=new THREE.Color();ASHW=new Float32Array(p.count);
     for(let i=0;i<p.count;i++){
       const x=p.getX(i),z=p.getZ(i),h=H(x,z);p.setY(i,h);HGRID[i]=h;
       const pd=_pd,rd=_rd,r=Math.hypot(x,z);
       const n=fbm(x*.09,z*.09),n2=vnoise(x*.6,z*.6);
       c.copy(gA).lerp(gB,sstep(.3,.75,n));
       c.lerp(forest,sstep(.45,.7,forestDensity(x,z))*.6);
-      const B=biomeW(x,z);
+      const B=biomeW(x,z);ASHW[i]=B.ash;
       if(B.gold>0){tmp.copy(goldA).lerp(goldB,sstep(.25,.75,n));c.lerp(tmp,B.gold*.62);}
       if(B.ash>0){tmp.copy(ashA).lerp(ashB,n);tmp.lerp(lava,(1-sstep(.02,.045,Math.abs(vnoise(x*.013+4,z*.013)-.5)))*.7);c.lerp(tmp,B.ash);}
       if(B.snow>0){tmp.copy(snowA).lerp(snowB,vnoise(x*.04,z*.04));c.lerp(tmp,B.snow*sstep(8,30,h));}
@@ -712,7 +716,7 @@ function build(saved){
       c.lerp(mud,1-sstep(-.6,.6,h));
       col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
     }
-    g.setAttribute('color',new THREE.BufferAttribute(col,3));TERRAIN_COL=col;
+    g.setAttribute('color',new THREE.BufferAttribute(col,3));TERRAIN_COL=col;ORIGC=col.slice();TERRAIN_GEO=g;
     g.computeVertexNormals();
     const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true}));
     m.receiveShadow=true;world.add(m);
@@ -720,7 +724,7 @@ function build(saved){
   const wTex=waterTex();wTex.repeat.set(240,240);
   {
     const g=new THREE.PlaneGeometry(TS,TS).rotateX(-Math.PI/2).translate(0,WATER_Y,0);
-    const m=new THREE.Mesh(g,new THREE.MeshPhongMaterial({color:'#5d9db5',emissive:'#14323e',map:wTex,transparent:true,opacity:.88,shininess:70,specular:'#8fb3c4',side:THREE.DoubleSide}));
+    const m=new THREE.Mesh(g,WATERM=new THREE.MeshPhongMaterial({color:'#5d9db5',emissive:'#14323e',map:wTex,transparent:true,opacity:.88,shininess:70,specular:'#8fb3c4',side:THREE.DoubleSide}));
     m.receiveShadow=true;world.add(m);
   }
 
@@ -900,6 +904,16 @@ function build(saved){
     {id:'ash',name:"Herald's Ashblade",model:'herald',len:1.3,dmg:290,spd:.92,trail:'#ff5a1a'},
   ];
   const SWD={};SWORDS.forEach((d,i)=>{d.lv=i+1;SWD[d.id]=d;});
+  const TRAITS={dirk:['quick','Wider parry window'],pilgrim:['steady','+25% damage at full health'],bone:['leech','Heals you a little on every hit'],warden:['break','Breaks guard twice as fast'],
+    hearth:['burn','Sets enemies on fire'],frost:['chill','Slows enemies down'],star:['star','Lands extra critical hits'],ash:['ember','Burns enemies and heals you']};
+  SWORDS.forEach(d=>{d.trait=TRAITS[d.id][0];d.tdesc=TRAITS[d.id][1];});
+  const curTrait=()=>(SWD[F.equip]||{}).trait;
+  function traitMul(){return curTrait()==='steady'&&PL.hp>=PL.max?1.25:1;}
+  function onHitTrait(B,dmg){const t=curTrait();
+    if(t==='leech'||t==='ember')PL.hp=Math.min(PL.max,PL.hp+Math.max(2,dmg*.02));
+    if(t==='break')B.poise-=dmg;
+    if(t==='burn'||t==='ember')B.burn=3;
+    if(t==='chill')B.chill=1.6;}
   const ashGlass=new THREE.MeshLambertMaterial({color:'#1a1412'}),ashEmber=new THREE.MeshBasicMaterial({color:'#ff6a20'}),ashStone=new THREE.MeshLambertMaterial({color:'#4c4642'});
   function buildSwordModel(parent,def){
     if(def.model==='ornate'){buildSword(parent,def.len);return;}
@@ -1162,7 +1176,7 @@ function build(saved){
   let weatherB={gold:0,ash:0,snow:0},wbT=0;
   function updateAsh(t,cx,cy,cz){
     wbT-=1;if(wbT<=0){wbT=20;weatherB=biomeW(cx,cz);}
-    const WB=weatherB,ft=(1-sstep(220,520,Math.hypot(cx,cz)))*fireLevel,f=Math.max(ft,WB.ash,WB.snow,WB.gold*.7);ashPts.visible=f>.02;if(!ashPts.visible)return;
+    const WB=weatherB,ft=(1-sstep(220,520,Math.hypot(cx,cz)))*fireLevel*(got[4]?.3:1),f=Math.max(ft,WB.ash,WB.snow,WB.gold*.7);ashPts.visible=f>.02;if(!ashPts.visible)return;
     const sn=WB.snow>Math.max(ft,WB.ash)?WB.snow:0,gd=WB.gold>Math.max(ft,WB.ash,WB.snow)?1:0;
     for(let i=0;i<ASH_N;i++){const a=aD[i];
       aPos[i*3]=cx+((((a.bx-cx)%ASH_BOX)+ASH_BOX*1.5)%ASH_BOX)-ASH_BOX/2+Math.sin(t*.7+a.ph)*1.2;
@@ -1777,11 +1791,21 @@ function build(saved){
     aun:{name:'The Stone Colossus',hp:2600,dmg:28,speed:2.2,sc:1.95,body:'#6a645a',trim:'#e0b878',glow:'#ffcc66',weapon:'fists',hover:0,atks:['slam','stomp','swing'],line:'One of the standing stones just stood up.'},
     vey:{name:'The Gale Wraith',hp:1800,dmg:21,speed:5.2,sc:1.2,body:'#b8c6d4',trim:'#eaf4ff',glow:'#9fd2ff',weapon:'blades',hover:1.1,atks:['dash','swing2','sweep'],line:'The wind up here has a face.'},
     nim:{name:'The Fallen Star',hp:2400,dmg:25,speed:3.4,sc:1.4,body:'#241c3a',trim:'#b896ff',glow:'#c9a6ff',weapon:'sword',hover:.5,atks:['starfall','swing2','lunge'],line:'Nim\'s star fell. Something crawled out of it.'}};
+  GDEF.ama.death='It whispered as it fell. "Keep the fire." It sounded like Ama.';
+  GDEF.sel.death='The Ferryman let go of the oar. The river went quiet.';
+  GDEF.ith.death='The roots loosened. Something like a sigh moved through the trees.';
+  GDEF.aun.death='It knelt, and then it was only a stone again.';
+  GDEF.vey.death='The wind stopped. For a moment I could hear the whole valley.';
+  GDEF.nim.death='It looked up at the sky before it went dark. It was looking for Nim.';
+  RUMORS.push('Something burns in the square at Ama\'s Hearth. We keep to our houses now.','The Ferryman still poles up Sel\'s river. Nobody who rode with him came back.',
+    'The trees in Ithwood moved last night. All of them, at once.','A stone stood up at the Standing Stones. Brother Oren will not go near it.',
+    'Up on the high peaks the wind has teeth. Something lives in it.','A star fell at the far rim. Something crawled out of the crater.');
   const GATK={swing:{w:.75,a:.18,r:.7,tell:'y',kind:'melee',range:4.2,cos:.2,m:1},swing2:{w:.55,a:.15,r:.4,tell:'y',kind:'melee',range:4.2,cos:.2,m:.8,next:'swing'},
     sweep:{w:.85,a:.25,r:.8,tell:'r',kind:'melee',range:5.3,cos:-.35,m:1.1},thrust:{w:.7,a:.15,r:.7,tell:'y',kind:'melee',range:5.8,cos:.6,m:1.05},
     slam:{w:1.0,a:.2,r:1.0,tell:'r',kind:'aoe',at:'front',rad:4.4,m:1.3},stomp:{w:1.1,a:.25,r:1.1,tell:'r',kind:'aoe',at:'self',rad:7.5,m:1},
     roots:{w:1.2,a:.2,r:.9,tell:'r',kind:'aoe',at:'player',rad:3.2,m:1.1},starfall:{w:1.3,a:.2,r:.9,tell:'r',kind:'aoe',at:'player',rad:3.4,m:1.2,n:3},
     lunge:{w:.6,a:.4,r:.8,tell:'r',kind:'dash',dist:11,m:1.1},dash:{w:.5,a:.35,r:.6,tell:'r',kind:'dash',dist:15,m:1}};
+  const FLASHM=new THREE.MeshBasicMaterial({color:'#ffffff'});
   const ringGeo=new THREE.RingGeometry(.86,1,40).rotateX(-Math.PI/2),RINGS=[];
   for(let k=0;k<6;k++){const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:'#ff3a2a',transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide,fog:false}));m.visible=false;m.renderOrder=4;world.add(m);RINGS.push(m);}
   let curG=null;
@@ -1825,14 +1849,15 @@ function build(saved){
   function endGuardianFight(){curG=null;fightOn=false;padTarget=0;setTimeout(()=>{if(!fightOn)setFightUI(false);},1800);}
   function killGuardian(G){G.s='dead';G.t=0;G.atk=null;G.dead=true;G.rings.forEach(r=>r.visible=false);G.rings=[];G.rig.tell.visible=false;
     F.gdead[G.i]=1;PL.max=100+10*Object.keys(F.gdead).length;PL.hp=PL.max;sfx.felled();
-    showBanner(G.def.name+' felled',G.light.name+' is free · +10 vitality','',4.4);endGuardianFight();}
+    showBanner(G.def.name+' felled',G.light.name+' is free · +10 vitality','',4.4);hitStop=.35;shakeAdd(.8);say([G.def.death]);endGuardianFight();}
   function hitGuardian(){const B=curG;if(!['idle','atk','stagger'].includes(B.s))return;
     const dx=B.x-P.x,dz=B.z-P.z,d=Math.hypot(dx,dz),fx=Math.sin(wren.face),fz=Math.cos(wren.face);
     if(d>4.4+B.def.sc*.9||(dx*fx+dz*fz)/Math.max(d,.01)<.25)return;
-    const base=(SWD[F.equip]||SWORDS[0]).dmg,crit=PL.critT>0,big=swing.step===2||crit,dmg=Math.round(base*(swing.step===2?1.55:1)*(crit?1.8:1));
+    const base=(SWD[F.equip]||SWORDS[0]).dmg,crit=PL.critT>0||(curTrait()==='star'&&Math.random()<.25),big=swing.step===2||crit,dmg=Math.round(base*(swing.step===2?1.55:1)*(crit?1.8:1)*traitMul());
     if(crit)cue('Critical','#f0b440');
-    B.hp=Math.max(0,B.hp-dmg);B.flash=.14;B.ghostDelay=.7;B.poise-=dmg;
-    hitStop=big?.11:.07;shakeAdd(big?.5:.3);sfx.hit(big);
+    B.hp=Math.max(0,B.hp-dmg);B.flash=.1;B.ghostDelay=.7;B.poise-=dmg;onHitTrait(B,dmg);
+    {const kb=(big?.7:.35)/B.def.sc;B.x+=dx/Math.max(d,.01)*kb;B.z+=dz/Math.max(d,.01)*kb;}
+    hitStop=big?.12:.07;shakeAdd(big?.55:.32);sfx.hit(big);
     dmgNum(dmg,B.x,Hq(B.x,B.z)+2.6*B.def.sc+Math.random(),B.z,big);heEmit(14,true,B.x-dx/d*1.2,P.feet+1.4,B.z-dz/d*1.2);
     if(B.hp<=0){killGuardian(B);return;}
     if(!B.p2&&B.hp<B.max*.5){B.p2=true;cue('Enraged','#ff6a3a');}
@@ -1848,8 +1873,9 @@ function build(saved){
       const dP=Math.hypot(P.x-G.x,P.z-G.z);
       if(G.dead){if(G.s==='dead'){G.t+=dt;R.g.position.y-=dt*.8;R.torso.rotation.x=Math.min(1.2,G.t*.8);if(G.t>3){G.s='gone';R.g.visible=false;}}continue;}
       R.g.visible=dP<520;if(!R.g.visible)continue;
-      const gdt=G.slow>0?dt*.3:dt;G.slow=Math.max(0,G.slow-dt);
+      const gdt=(G.slow>0?dt*.3:dt)*(G.chill>0?.72:1);G.slow=Math.max(0,G.slow-dt);
       G.t+=gdt;G.flash=Math.max(0,G.flash-dt);G.tellT=Math.max(0,G.tellT-dt);R.tell.visible=G.tellT>0;
+      {const fl=G.flash>0;if(fl!==!!G._fl){G._fl=fl;R.g.traverse(o=>{if(!o.isMesh||o===R.tell)return;if(fl){o.userData.om=o.material;o.material=FLASHM;}else if(o.userData.om){o.material=o.userData.om;}});}}
       const toP=Math.atan2(P.x-G.x,P.z-G.z);let walk=0;
       const ra=R.arms[1],la=R.arms[0];
       if(G.s==='sleep'){R.hip.position.y=.55;R.torso.rotation.x=.6;ra.rotation.x=la.rotation.x=.2;R.legs.forEach((l,k)=>l.rotation.x=k?-.2:-1.4);
@@ -1889,11 +1915,87 @@ function build(saved){
       if(dist<c.range*d.sc*.85+.6&&f>c.cos)hurtPlayer(dmg,G.x,G.z,c.tell);}
     else if(c.kind==='aoe'){shakeAdd(.4);sfx.clank(.5);A.pts.forEach(pt=>{heEmit(10,true,pt.x,Hq(pt.x,pt.z)+.5,pt.z);});
       if(A.pts.some(pt=>Math.hypot(P.x-pt.x,P.z-pt.z)<c.rad))hurtPlayer(dmg,G.x,G.z,c.tell);}}
+  /* ===== the valley heals as Lights return ===== */
+  const HEALC=new THREE.Color('#5f7d3a'),BLOOMC=new THREE.Color('#7da447'),REST={};
+  {const V=VILLAGES[0],y0=Hq(V.x,V.z);for(let k=0;k<8;k++){const a=k/8*6.28;mesh(new THREE.DodecahedronGeometry(.4,0),rockMat,V.x+Math.cos(a)*1.3,y0+.2,V.z+Math.sin(a)*1.3);}
+    const g=new THREE.Group();g.position.set(V.x,y0,V.z);world.add(g);REST.amaFl=[];
+    for(let k=0;k<7;k++)REST.amaFl.push(mesh(new THREE.ConeGeometry(.35,1.4,6),nmat(k%2?'#ffb347':'#ff6a20',true),rand(-.4,.4),.7,rand(-.4,.4),g,false));
+    const glow=new THREE.Mesh(new THREE.SphereGeometry(3,10,8),new THREE.MeshBasicMaterial({color:'#ff9a40',transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false}));glow.position.y=1.2;g.add(glow);
+    g.visible=false;REST.ama=g;CIRC.push({x:V.x,z:V.z,r:1.7});}
+  {const c=LPOS.ith,geo=new THREE.ConeGeometry(.18,.5,5).translate(0,.25,0),m=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:'#ffffff'}),2200);
+    const cols=['#e85a8a','#f2d24a','#ffffff','#b07ae0','#ff8a3a'].map(h=>new THREE.Color(h));let n=0;
+    for(let t=0;t<8000&&n<2200;t++){const a=rand(0,6.28),r=Math.sqrt(Math.random())*180,x=c.x+Math.cos(a)*r,z=c.z+Math.sin(a)*r,y=Hq(x,z);if(y<.3||y>70)continue;
+      dummy.position.set(x,y,z);dummy.rotation.set(0,rand(0,6),0);dummy.scale.setScalar(rand(.7,1.5));dummy.updateMatrix();m.setMatrixAt(n,dummy.matrix);m.setColorAt(n,cols[n%cols.length]);n++;}
+    m.count=n;m.frustumCulled=false;m.visible=false;world.add(m);REST.ith=m;}
+  {const c=LPOS.aun,g=new THREE.Group();g.position.set(c.x,Hq(c.x,c.z),c.z);world.add(g);REST.aunR=[];
+    for(let k=0;k<10;k++){const r=mesh(new THREE.OctahedronGeometry(.32),nmat('#ffd27a',true),Math.cos(k/10*6.28)*9,3+Math.sin(k)*.5,Math.sin(k/10*6.28)*9,g,false);r.scale.y=1.8;REST.aunR.push(r);}
+    g.visible=false;REST.aun=g;}
+  REST.stars=[];for(let k=0;k<3;k++){const m=new THREE.Mesh(new THREE.BoxGeometry(.5,.5,60),new THREE.MeshBasicMaterial({color:'#e8e0ff',transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));m.visible=false;scene.add(m);REST.stars.push({m,t:9});}
+  let starCD=4;
+  function healTerrain(){if(!TERRAIN_COL||!ORIGC)return;const N=TN+1,ah=got.filter(Boolean).length/6*.75,lit=LDEF.map((L,i)=>got[i]?LPOS[L.id]:null).filter(Boolean);
+    for(let j=0;j<N;j++)for(let i=0;i<N;i++){const k=j*N+i,h=HGRID[k];let r=ORIGC[k*3],g=ORIGC[k*3+1],b=ORIGC[k*3+2];
+      if(h>WATER_Y){const aw=ASHW[k]*ah;if(aw>0){r+=(HEALC.r-r)*aw;g+=(HEALC.g-g)*aw;b+=(HEALC.b-b)*aw;}
+        if(lit.length&&h<70){const x=-TS/2+i*TSTEP,z=-TS/2+j*TSTEP;let bl=0;for(const q of lit){const d=Math.abs(x-q.x)+Math.abs(z-q.z);if(d<420){const e=Math.hypot(x-q.x,z-q.z);if(e<300)bl=Math.max(bl,(1-e/300)*.35);}}
+          if(bl>0){r+=(BLOOMC.r-r)*bl;g+=(BLOOMC.g-g)*bl;b+=(BLOOMC.b-b)*bl;}}}
+      TERRAIN_COL[k*3]=r;TERRAIN_COL[k*3+1]=g;TERRAIN_COL[k*3+2]=b;}
+    TERRAIN_GEO.attributes.color.needsUpdate=true;try{mapBase=null;}catch(e){}}
+  function wakeHusks(i,count){const lp=LPOS[LDEF[i].id];
+    NPCS.filter(n=>n.husk&&!n.woke).sort((a,b)=>Math.hypot(a.x-lp.x,a.z-lp.z)-Math.hypot(b.x-lp.x,b.z-lp.z)).slice(0,count).forEach(n=>{
+      n.woke=true;world.remove(n.rig.g);n.look={robe:pick(ROBES),hat:pick(['hood','straw','none']),hair:pick(['#2a1a12','#6a3420','#8a7a6a']),staff:Math.random()<.5,cue:true};
+      n.rig=buildNPC(n.look);n.husk=false;n.pose='stand';n.mode='roam';n.hx=n.x;n.hz=n.z;n.pause=[2,6];n.speed=1.1;n.talked=false;n.name=pick(FIRST)+', woken';
+      n.lines=[["I was ash. I could hear you walking past. Every time.","When the Light came back, the ash slid off me like snow.","Thank you, keeper. I am going home."],["I keep looking at my hands."]];});}
+  function applyRestore(i,fresh){const id=LDEF[i].id;
+    if(id==='ama')REST.ama.visible=true;else if(id==='ith')REST.ith.visible=true;else if(id==='aun')REST.aun.visible=true;
+    else if(id==='sel'&&WATERM){WATERM.color.set('#4fb8d8');WATERM.emissive.set('#1c4e60');}
+    wakeHusks(i,3);
+    if(fresh){healTerrain();setTimeout(()=>{showBanner('The valley remembers '+LDEF[i].title.split(' ')[0],{ama:'A fire is lit in the village square',sel:'The river runs clear and warm',ith:'Ithwood is in bloom',aun:'The standing stones are singing',vey:'The ash from the tower thins',nim:'Stars fall over the valley at night'}[id],'area',4.2);sfx.motif('light');},400);}}
+  function updateRest(dt){
+    if(REST.ama.visible)REST.amaFl.forEach((f,i)=>{f.scale.y=.7+.5*Math.abs(Math.sin(clockT*6+i*1.9));f.rotation.y=clockT*2+i;});
+    if(REST.aun.visible){REST.aun.rotation.y=clockT*.15;REST.aunR.forEach((r,i)=>{r.position.y=3+Math.sin(clockT*1.4+i)*.5;r.rotation.y=clockT*2;});}
+    if(got[5]&&nightF>.45){starCD-=dt;if(starCD<=0){starCD=rand(2.5,7);const s0=REST.stars.find(q=>q.t>=1.2);if(s0){s0.t=0;const a=rand(0,6.28),cp=camera.position;s0.m.position.set(cp.x+Math.cos(a)*700,cp.y+rand(260,420),cp.z+Math.sin(a)*700);s0.m.rotation.set(rand(-.4,.4),rand(0,6.28),0);s0.m.visible=true;}}}
+    REST.stars.forEach(q=>{if(q.t>=1.2){q.m.visible=false;return;}q.t+=dt;q.m.translateZ(dt*520);q.m.material.opacity=Math.sin(Math.min(1,q.t/1.2)*Math.PI)*.9;});}
+  /* NPC memory */
+  const NPC_AFTER={'Tamsin':{ama:["The hearth! You brought her fire home.","The children sat around it all night. First time in years."],herald:["The thing on the pass is gone? Then the tower is next. Be careful up there."]},
+    'Hask the smith':{ama:["Ama's fire is back in the square. I lit my forge from it this morning. The steel sings again."]},
+    'Mira':{sel:["The river is warm again. I swam in it this morning, like when I was a girl."]},
+    'Brother Oren':{aun:["The stones are humming. Aun is listening again."],herald:["You stood against the shield-bearer and lived. Aun would have knelt to you."]},
+    'Ysolde':{any:["The ash falls slower now. People are opening their shutters again."]},
+    'Lio':{vey:["The wind changed. It smells like the sea. Vey used to bring that smell."]},
+    'Corvin the mapmaker':{nim:["I saw a falling star last night. Then another. I had to add them to the map."],ith:["Ithwood bloomed. I have to redraw the whole sheet."]},
+    'Bren the miner':{any:["You are bringing them back. I can feel the mountain breathing easier."]}};
+  function memoryLines(n){const M=F.npcMem[n.name]||(F.npcMem[n.name]={}),AF=NPC_AFTER[n.name]||{},mem=[];
+    LDEF.forEach((L,i)=>{if(got[i]&&AF[L.id]&&!M['a_'+L.id]){M['a_'+L.id]=1;mem.push(...AF[L.id]);}});
+    if(F.herald&&AF.herald&&!M.a_herald){M.a_herald=1;mem.push(...AF.herald);}
+    if(AF.any&&got.some(Boolean)&&!M.a_any){M.a_any=1;mem.push(...AF.any);}
+    const gk=Object.keys(F.gdead);
+    if(M.talked&&!mem.length){if((F.deaths||0)>(M.deaths||0))mem.push(pick(["You died out there. I can see it in your eyes. Do not make a habit of it.","Back again? You look like you crawled out of a grave.","Something killed you. Rest a while before you go back."]));
+      else if(gk.length>(M.g||0))mem.push('They say '+GUARDS[+gk[gk.length-1]].def.name+' has fallen. That was you, was it not?');}
+    M.talked=1;M.deaths=F.deaths||0;M.g=gk.length;return {M,mem};}
+  /* ambient barks */
+  const barkEl=document.createElement('div');barkEl.className='bark';barkEl.hidden=true;document.body.appendChild(barkEl);
+  let barkN=null,barkT=0,barkCD=5;const bpv=new THREE.Vector3();
+  function barkLines(n){if(n.husk&&!n.woke)return ['...keeper...','...so cold...','...is it morning yet...','...I can hear the fire...'];
+    const nl=got.filter(Boolean).length,L=['Keeper.','Safe roads.','Mind the ash on the wind.','A keeper? Up from the old mine?'];
+    if(nl>0)L.push('You brought a Light back. I felt it in my chest.','The air tastes cleaner. Was that you?');
+    if(got[0]&&Math.hypot(n.x-VILLAGES[0].x,n.z-VILLAGES[0].z)<160)L.push('The hearth is burning again!','We cooked on Ama\'s fire tonight.');
+    if(F.herald)L.push('They say the thing on the pass is gone.');
+    if(nightF>.6)L.push('You should not be out this late.','The husks whisper at night.');
+    if(PL.hp<PL.max*.4)L.push('You are bleeding, keeper.','Sit by a fire. You look half dead.');
+    if(F.lastDeath!==undefined&&elapsed-F.lastDeath<180)L.push('You look like you crawled out of a grave.');
+    if(n.woke)L.push('I can feel my hands again.','Everything is so loud after the ash.');
+    return L;}
+  function updateBarks(dt){
+    if(barkT>0){barkT-=dt;if(barkT<=0||!barkN||!barkN.rig.g.visible){barkEl.hidden=true;barkN=null;barkT=0;}else{bpv.set(barkN.x,Hq(barkN.x,barkN.z)+2.3,barkN.z).project(camera);
+      if(bpv.z>1)barkEl.style.opacity='0';else{barkEl.style.opacity=String(Math.min(1,barkT*2));barkEl.style.transform=`translate(${(bpv.x+1)/2*innerWidth}px,${(1-bpv.y)/2*innerHeight}px) translate(-50%,-100%)`;}}}
+    barkCD-=dt;if(barkCD>0||state!=='play'||reading||fightOn||inCave||barkT>0)return;
+    let best=null,bd=7.5;for(const n of NPCS){if(!n.rig.g.visible||n.talkT>0)continue;const d=Math.hypot(n.x-P.x,n.z-P.z);if(d<bd){bd=d;best=n;}}
+    if(!best){barkCD=1;return;}const L=barkLines(best);if(!L.length){barkCD=3;return;}
+    barkN=best;barkT=3.4;barkEl.textContent=pick(L);barkEl.classList.toggle('husk',!!(best.husk&&!best.woke));barkEl.hidden=false;barkCD=rand(10,18);}
   function talkNPC(n){
     n.talkT=8;n.talked=true;sfx.chime([440,554],.5);
     let pages;
     if(n.rumor){const a=pick(RUMORS);let b=pick(RUMORS);if(b===a)b=RUMORS[(RUMORS.indexOf(a)+1)%RUMORS.length];pages=[pick(GREET),a,b];}
-    else{const i=Math.min(n.talkI,n.lines.length-1);pages=n.lines[i];if(n.marks&&n.marks[i])n.marks[i].forEach(m=>{if(!F.known[m]){F.known[m]=1;showToast('Marked on your compass: '+m);}});n.talkI++;}
+    else{const {M,mem}=memoryLines(n);if(M.i!==undefined)n.talkI=M.i;if(mem.length){pages=mem;}else{const i=Math.min(n.talkI,n.lines.length-1);pages=n.lines[i];if(n.marks&&n.marks[i])n.marks[i].forEach(m=>{if(!F.known[m]){F.known[m]=1;showToast('Rumor noted: '+m+' (rough direction on your compass)');}});n.talkI++;M.i=n.talkI;}}
     read(n.name,pages,()=>{});
   }
   function updateNPCs(dt){
@@ -2110,7 +2212,7 @@ function build(saved){
     blip(){if(!this.ok())return;tone(A.ctx.currentTime,rand(150,210),140,.05,.02,'square');},
     whoosh(v){if(!this.ok())return;sweepNoise(A.ctx.currentTime,.22,.18*v,500,2800,1.4);},
     whooshBig(){if(!this.ok())return;sweepNoise(A.ctx.currentTime,.42,.22,240,1500,1);},
-    hit(big){if(!this.ok())return;const t=A.ctx.currentTime;noiseBurst(t,big?.24:.15,big?.32:.24,'lowpass',1100);tone(t,big?150:190,55,.2,big?.15:.11,'square');tone(t,1300,880,.14,.05,'triangle');},
+    hit(big){if(!this.ok())return;const t=A.ctx.currentTime,r=rand(.86,1.16);noiseBurst(t,big?.24:.15,big?.32:.24,'lowpass',1100*r);tone(t,(big?150:190)*r,55,.2,big?.15:.11,'square');tone(t,1300*r,880*r,.14,.05,'triangle');if(big)tone(t+.01,2600*r,2450*r,.35,.035,'sine');},
     hurt(){if(!this.ok())return;const t=A.ctx.currentTime;noiseBurst(t,.25,.24,'lowpass',500);tone(t,240,110,.22,.07,'sawtooth');},
     boom(){if(!this.ok())return;const t=A.ctx.currentTime;tone(t,75,28,.8,.32,'sine');noiseBurst(t,.7,.3,'lowpass',320);},
     growl(){if(!this.ok())return;const t=A.ctx.currentTime;tone(t,66,48,.9,.06,'sawtooth');noiseBurst(t,.8,.07,'lowpass',260);},
@@ -2121,7 +2223,9 @@ function build(saved){
     parry(){if(!this.ok())return;const t=A.ctx.currentTime;tone(t,1900,1250,.5,.12,'triangle');tone(t,2850,2100,.35,.06,'triangle');noiseBurst(t,.18,.3,'highpass',2400);tone(t,160,70,.25,.12,'square');},
     perfect(){if(!this.ok())return;const t=A.ctx.currentTime;sweepNoise(t,.5,.18,3000,400,2);tone(t+.05,1200,600,.5,.05,'sine');},
     discover(){if(!this.ok())return;const t=A.ctx.currentTime;[294,392,494,587].forEach((f,i)=>tone(t+i*.16,f,f,1.6,.045,'triangle'));},
-    felled(){if(!this.ok())return;const t=A.ctx.currentTime;tone(t,180,36,2.8,.09,'sawtooth');noiseBurst(t,1,.22,'lowpass',700);[392,494,587,784].forEach((f,i)=>tone(t+1.2+i*.12,f,f,1.8,.07,'triangle'));},
+    felled(){if(!this.ok())return;const t=A.ctx.currentTime;tone(t,180,36,2.8,.09,'sawtooth');noiseBurst(t,1,.22,'lowpass',700);this.mourn(t+1.4);},
+    mourn(t0){if(!this.ok())return;const t=t0||A.ctx.currentTime;tone(t,147,146,6.5,.05,'sine');tone(t,220,219,6.5,.025,'sine');[587,523,466,440,392,349,392].forEach((f,i)=>tone(t+i*.62,f,f*.998,2.4,.045,'triangle'));},
+    motif(kind){if(!this.ok())return;const t=A.ctx.currentTime,N=kind==='tower'?[220,330,392,440,523,494,440]:kind==='light'?[392,494,587,784,740,587]:[294,349,440,523];tone(t,110,110,5,.035,'sine');N.forEach((f,i)=>tone(t+i*.55,f,f,2.6,.045,'triangle'));},
   };
   let padTarget=0;
   function updateAudio(dt,t,wind){
@@ -2129,7 +2233,7 @@ function build(saved){
     const ct=A.ctx.currentTime,ramp=(p,v,k)=>p.setTargetAtTime(v,ct,k||.25);
     const out=!inCave;
     const alt=sstep(30,140,P.feet);
-    ramp(A.windG.gain,out?(.04+.07*wind+.1*alt):0);A.windF.frequency.setTargetAtTime(300+380*wind,ct,.4);
+    ramp(A.windG.gain,out?(.04+.07*wind+.1*alt+.09*weatherB.snow):0);A.windF.frequency.setTargetAtTime(300+380*wind,ct,.4);
     const ang=Math.atan2(P.z,P.x),rp=polar(RIV(ang),ang),dr=riverDist(P.x,P.z);
     ramp(A.riverG.gain,out?.2*(1-sstep(3,55,dr)):0);if(A.riverP)ramp(A.riverP.pan,panFor(rp));
     const pulse=Math.sin(t*2.3)>.15?1:.15;
@@ -2146,6 +2250,7 @@ function build(saved){
     if(fightOn)return;
     A.nextBird-=dt;
     if(A.nextBird<=0){A.nextBird=rand(1.5,5);if(dayF>.45&&alt<.6){const a=Math.random()*6.28,d=rand(10,35);sfx.chirp(ct,rand(.4,1),{x:P.x+Math.cos(a)*d,z:P.z+Math.sin(a)*d});}}
+    A.nextCrk=(A.nextCrk||0)-dt;if(A.nextCrk<=0){A.nextCrk=rand(.06,.45);if(weatherB.ash>.45)noiseBurst(ct,.025,.06*weatherB.ash,'highpass',2500+Math.random()*3000);}
     A.nextOwl-=dt;if(A.nextOwl<=0){A.nextOwl=rand(18,35);if(nightF>.6){const a=Math.random()*6.28;sfx.owl({x:P.x+Math.cos(a)*30,z:P.z+Math.sin(a)*30});}}
   }
   function setMuted(m){muted=m;$('soundLabel').textContent=m?'Off':'On';if(A.master)A.master.gain.setTargetAtTime(m?0:SET.vol,A.ctx.currentTime,.05);}
@@ -2156,7 +2261,7 @@ function build(saved){
   let state='title',inCave=false,rideT=0,seqT=0;
   const P={x:0,z:0,feet:0,vy:0};
   let yaw=0,pitch=0,roll=0,onGround=true,bob=0,lastStep=0;
-  const F=Object.assign({swords:[],equip:null,disc:{},known:{},gdead:{},seenL:{},map:false,sword:false,herald:false,lantern:false,lanternOn:false,crank:false,triedLift:false,sawB:false,village:false,pass:false,near:false,bridge:false,gateOpen:false,won:false},saved.flags||{});
+  const F=Object.assign({swords:[],equip:null,disc:{},known:{},gdead:{},seenL:{},npcMem:{},deaths:0,map:false,sword:false,herald:false,lantern:false,lanternOn:false,crank:false,triedLift:false,sawB:false,village:false,pass:false,near:false,bridge:false,gateOpen:false,won:false},saved.flags||{});
   const got=Array.isArray(saved.got)&&saved.got.length===6?saved.got.slice():[false,false,false,false,false,false];
   let elapsed=saved.elapsed||0,dayT=typeof saved.dayT==='number'?saved.dayT:.46,gateT=F.gateOpen?1:0;
   got.forEach((g,i)=>{if(g)lightObjs[i].grp.visible=false;});
@@ -2238,6 +2343,7 @@ function build(saved){
   ];
   SITES.forEach(st=>INTER.push({cave:false,x:st.x,z:st.z,label:()=>'Take '+SWD[st.sw].name,ok:()=>!F.swords.includes(st.sw),use:()=>takeSword(st.sw)}));
   NPCS.filter(n=>n.lines||n.rumor).forEach(n=>INTER.push({cave:false,get x(){return n.x;},get z(){return n.z;},label:()=>'Talk to '+n.name,ok:()=>n.rig.g.visible&&!fightOn,use:()=>talkNPC(n)}));
+  NPCS.filter(n=>n.husk).forEach(n=>INTER.push({cave:false,get x(){return n.x;},get z(){return n.z;},label:()=>'Talk to '+n.name,ok:()=>n.woke&&n.rig.g.visible&&!fightOn,use:()=>talkNPC(n)}));
   INTER.push({cave:false,x:MAPC.x,z:MAPC.z,label:'Take the valley map',ok:()=>!F.map,use:takeMap});
   function nearestInter(){let best=null,bd=2.7;for(const it of INTER){if(it.cave!==inCave||!it.ok())continue;const d=Math.hypot(it.x-P.x,it.z-P.z);if(d<bd){bd=d;best=it;}}return best;}
   function useAction(){
@@ -2259,7 +2365,8 @@ function build(saved){
     if(!paused&&state==='play'){
       if(e.code==='KeyM'){if(F.map)openOvl('map');else showToast('You have no map yet');return;}
       if(e.code==='KeyI'||e.code==='Tab'){e.preventDefault();openOvl('inv');return;}
-      if(e.code==='F2'||(e.code==='KeyP'&&e.shiftKey)){e.preventDefault();openOvl('cheat');return;}}
+      if(DEV&&(e.code==='F2'||(e.code==='KeyP'&&e.shiftKey))){e.preventDefault();openOvl('cheat');return;}
+      if(e.key&&e.key.length===1){devBuf=(devBuf+e.key.toLowerCase()).slice(-9);if(devBuf==='hollowdev'){DEV=!DEV;try{DEV?localStorage.setItem('hollowkeep.dev','1'):localStorage.removeItem('hollowkeep.dev');}catch(err){}showToast(DEV?'Admin unlocked · Shift+P':'Admin locked');}}}
     if(e.code==='Escape'&&cine&&state==='intro'){endCine();return;}
     if(e.code==='Escape'&&state==='play'){if(paused)closeMenu();else if(!locked)openMenu();return;}
     if(paused)return;
@@ -2303,6 +2410,8 @@ function build(saved){
   document.addEventListener('pointerlockerror',onLockFail);
   function updatePause(){$('pause').hidden=locked||state!=='play'||lockFailed||isTouch||!!reading||paused||altFree;}
   /* ===== valley map + admin panel ===== */
+  let DEV=false;try{if(/[?&#]dev\b/.test(location.search+location.hash))localStorage.setItem('hollowkeep.dev','1');if(/[?&#]nodev\b/.test(location.search+location.hash))localStorage.removeItem('hollowkeep.dev');DEV=localStorage.getItem('hollowkeep.dev')==='1';}catch(e){}
+  let devBuf='';
   const CHEAT=Object.assign({god:false,fast:false,map:false},(()=>{try{return JSON.parse(localStorage.getItem('hollowkeep.cheat')||'{}');}catch(e){return {};}})());
   const saveCheat=()=>{try{localStorage.setItem('hollowkeep.cheat',JSON.stringify(CHEAT));}catch(e){}};
   let ovl=null;
@@ -2331,7 +2440,7 @@ function build(saved){
     const c=mctx;c.setTransform(1,0,0,1,0,0);c.fillStyle='#e3d5b4';c.fillRect(0,0,W,W);c.imageSmoothingEnabled=true;
     const o=w2m(-TS/2,-TS/2,W);c.drawImage(mapBase,o[0],o[1],TS*mapView.zoom,TS*mapView.zoom);
     const g=c.createRadialGradient(W/2,W/2,W*.3,W/2,W/2,W*.75);g.addColorStop(0,'rgba(60,40,20,0)');g.addColorStop(1,'rgba(60,40,20,.35)');c.fillStyle=g;c.fillRect(0,0,W,W);
-    const fs=Math.max(11,W*.016),all=CHEAT.map;
+    const fs=Math.max(11,W*.016),all=DEV&&CHEAT.map;
     const label=(txt,x,z,col,size,dy)=>{const p=w2m(x,z,W);c.font=`${size||fs}px Georgia,serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(236,220,184,.85)';c.strokeText(txt,p[0],p[1]+(dy||0));c.fillStyle=col||'#2a1d14';c.fillText(txt,p[0],p[1]+(dy||0));};
     const dot=(x,z,col,r,shape)=>{const p=w2m(x,z,W);c.fillStyle=col;c.strokeStyle='#1d1a17';c.lineWidth=1.5;c.beginPath();
       if(shape==='diamond'){c.moveTo(p[0],p[1]-r);c.lineTo(p[0]+r,p[1]);c.lineTo(p[0],p[1]+r);c.lineTo(p[0]-r,p[1]);c.closePath();}
@@ -2340,6 +2449,7 @@ function build(saved){
     /* tower */
     dot(0,0,'#b8502a',fs*.7);label('The Burning Keep',0,0,'#6b2a18',fs*1.15,-fs*1.1);
     AREAS.forEach(A0=>{if(A0.name==='The Burning Keep'||!A0.r)return;const show=MAP_PRINTED.has(A0.name)||F.disc[A0.name]||F.known[A0.name]||all;if(!show)return;
+      if(!MAP_PRINTED.has(A0.name)&&!F.disc[A0.name]&&!all){const j=(A0.name.length*37%100)/100*6.28,cx0=A0.x+Math.cos(j)*90,cz0=A0.z+Math.sin(j)*90,pp=w2m(cx0,cz0,W);c.save();c.setLineDash([6,5]);c.strokeStyle='#6b2a18';c.lineWidth=2;c.beginPath();c.arc(pp[0],pp[1],220*mapView.zoom,0,6.28);c.stroke();c.restore();label(A0.name+' ?',cx0,cz0,'#6b2a18',fs*.85,0);return;}
       dot(A0.x,A0.z,F.disc[A0.name]?'#2a1d14':'#8f877a',fs*.32,'diamond');label(A0.name,A0.x,A0.z,F.disc[A0.name]?'#2a1d14':'#5a4a3a',fs,-fs*.7);});
     LDEF.forEach((L,i)=>{if(!(F.seenL[i]||all)||got[i])return;const o=lightObjs[i];dot(o.x,o.z,L.color,fs*.6,'star');const G=GUARDS[i];
       label(G&&!G.dead?G.def.name:L.name,o.x,o.z,G&&!G.dead?'#6b2a18':'#2a1d14',fs*.8,fs*1.5);});
@@ -2356,7 +2466,7 @@ function build(saved){
   mapCv.addEventListener('pointerdown',e=>{mDrag={x:e.clientX,y:e.clientY,cx:mapView.cx,cz:mapView.cz,moved:false};mapCv.setPointerCapture(e.pointerId);});
   mapCv.addEventListener('pointermove',e=>{if(!mDrag)return;const dpr=mapCv.width/mapCv.clientWidth,dx=(e.clientX-mDrag.x)*dpr,dy=(e.clientY-mDrag.y)*dpr;if(Math.hypot(dx,dy)>4)mDrag.moved=true;
     mapView.cx=mDrag.cx-dx/mapView.zoom;mapView.cz=mDrag.cz-dy/mapView.zoom;drawMap();});
-  mapCv.addEventListener('pointerup',e=>{if(!mDrag)return;const was=mDrag;mDrag=null;if(was.moved||!(CHEAT.map||CHEAT.tpArmed))return;
+  mapCv.addEventListener('pointerup',e=>{if(!mDrag)return;const was=mDrag;mDrag=null;if(was.moved||!DEV||!(CHEAT.map||CHEAT.tpArmed))return;
     const rc=mapCv.getBoundingClientRect(),dpr=mapCv.width/rc.width,W=mapCv.width,mx=(e.clientX-rc.left)*dpr,my=(e.clientY-rc.top)*dpr;
     const x=mapView.cx+(mx-W/2)/mapView.zoom,z=mapView.cz+(my-W/2)/mapView.zoom;CHEAT.tpArmed=false;closeOvl();tpTo(x,z);});
   function tpTo(x,z){if(inCave)setCave(false);P.x=x;P.z=z;P.feet=Math.max(Hq(x,z),WATER_Y-1)+.05;P.vy=0;showToast('Teleported · '+areaAt(x,z));}
@@ -2371,7 +2481,7 @@ function build(saved){
   $('cheatClose').addEventListener('click',closeOvl);
   document.querySelectorAll('[data-ch]').forEach(b=>b.addEventListener('click',()=>{const c=b.dataset.ch;
     if(c==='swords'){SWORDS.forEach(d=>takeSword(d.id,true));updateSlots();showToast('All swords · '+SWD[F.equip].name);}
-    else if(c==='lights'){LDEF.forEach((L,i)=>{got[i]=true;lightObjs[i].grp.visible=false;});F.gateOpen=true;showToast('All six Lights · the gate is open');}
+    else if(c==='lights'){LDEF.forEach((L,i)=>{if(!got[i]){got[i]=true;lightObjs[i].grp.visible=false;applyRestore(i,false);}});healTerrain();F.gateOpen=true;showToast('All six Lights · the gate is open');}
     else if(c==='map'){F.map=true;CAMP.mapG.children.forEach((ch,i)=>{if(i>0)ch.visible=false;});updateKeysChip();showToast('Map added · press M');}
     else if(c==='heal'){PL.hp=PL.max;PL.flasks=3;showToast('Healed');}
     else if(c==='disc'){AREAS.forEach(A0=>F.disc[A0.name]=1);LDEF.forEach((L,i)=>F.seenL[i]=1);showToast('All places discovered');}
@@ -2403,7 +2513,7 @@ function build(saved){
     const own=F.swords.length;$('invSwCount').textContent=own+' / '+SWORDS.length;
     $('invSwords').innerHTML=SWORDS.map(d=>{const has=F.swords.includes(d.id),eq=F.equip===d.id;
       return `<button type="button" class="scard${eq?' eq':''}${has?'':' locked'}" data-sw="${d.id}"><span class="lv">Lv ${d.lv}</span>${eq?'<span class="eqb">EQUIPPED</span>':''}
-        <img alt="" src="${swordThumbs[d.id]||''}"><span class="nm">${has?d.name:'Unknown blade'}</span><span class="st">${has?d.dmg+' dmg · '+(d.spd>=1.05?'fast':d.spd<=.86?'heavy':'balanced'):'Not found yet'}</span></button>`;}).join('');
+        <img alt="" src="${swordThumbs[d.id]||''}"><span class="nm">${has?d.name:'Unknown blade'}</span><span class="st">${has?d.dmg+' dmg · '+(d.spd>=1.05?'fast':d.spd<=.86?'heavy':'balanced'):'Not found yet'}</span>${has?`<span class="st tr">${d.tdesc}</span>`:''}</button>`;}).join('');
     const cur=SWD[F.equip];$('invSel').textContent=cur?'Equipped: '+cur.name+'. Click another sword to switch.':'You have no sword yet. Click a slot for a hint.';
     $('invLights').innerHTML=LDEF.map((L,i)=>`<div class="inv-light${got[i]?' on':''}" style="color:${got[i]?L.color:''}"><i></i>${L.name.replace("'s Light",'')}</div>`).join('');
     const gd=Object.keys(F.gdead).length,row=(a,b)=>`<div class="inv-row"><span>${a}</span><span>${b}</span></div>`;
@@ -2530,7 +2640,7 @@ function build(saved){
   }
   function enterPlay(){state='play';showHud(true);seqT=0;wren.face=yaw+Math.PI;}
   function collectLight(i){
-    got[i]=true;lightObjs[i].grp.visible=false;const L=LDEF[i];
+    got[i]=true;lightObjs[i].grp.visible=false;const L=LDEF[i];applyRestore(i,true);
     const n=got.filter(Boolean).length;
     sfx.chime([523,659,784].map(f=>f*(1+i*.06)),1.6);
     showToast(L.name+' · '+n+'/6');
@@ -2612,9 +2722,9 @@ function build(saved){
     const cur=SWD[F.equip];if(!cur||def.dmg>cur.dmg){equipSword(id);if(F.sheathed)setSheathed(true);}
     if(quiet)return;
     sfx.clank(.7);sfx.whoosh(.6);sfx.chime([523,659,784,1047],1.4);
-    showBanner(def.name,'Sword level '+def.lv+' · '+def.dmg+' damage','sword',3.6);
+    showBanner(def.name,'Sword level '+def.lv+' · '+def.dmg+' damage · '+def.tdesc,'sword',3.8);
     say(SWORD_LINES[id]||['A new blade.']);
-    if(first)showToast('Click attack · Right-click parry yellow flashes · Q roll through red ones · → switch sword');}
+    if(first)showToast('Click to attack · → switches swords');}
   function cycleSword(){if(F.swords.length<2){showToast(F.sword?SWD[F.equip].name+' · Lv '+SWD[F.equip].lv:'You have no sword yet');return;}
     const own=SWORDS.filter(d=>F.swords.includes(d.id));const i=own.findIndex(d=>d.id===F.equip);const nx=own[(i+1)%own.length];
     equipSword(nx.id);if(F.sheathed)setSheathed(false);sfx.clank(.5);sfx.whoosh(.5);showToast(nx.name+' · Lv '+nx.lv+' · '+nx.dmg+' damage');}
@@ -2656,9 +2766,9 @@ function build(saved){
     const B=herald;if(!['idle','atk','stagger'].includes(B.s))return;
     const dx=B.x-P.x,dz=B.z-P.z,d=Math.hypot(dx,dz),fx=Math.sin(wren.face),fz=Math.cos(wren.face);
     if(d>4.7||(dx*fx+dz*fz)/Math.max(d,.01)<.3)return;
-    const base=(SWD[F.equip]||SWORDS[0]).dmg,crit=PL.critT>0,big=swing.step===2||crit,dmg=Math.round(base*(swing.step===2?1.55:1)*(crit?1.8:1));
+    const base=(SWD[F.equip]||SWORDS[0]).dmg,crit=PL.critT>0||(curTrait()==='star'&&Math.random()<.25),big=swing.step===2||crit,dmg=Math.round(base*(swing.step===2?1.55:1)*(crit?1.8:1)*traitMul());
     if(crit)cue('Critical','#f0b440');
-    B.hp=Math.max(0,B.hp-dmg);B.flash=.14;B.ghostDelay=.7;B.poise-=dmg;
+    B.hp=Math.max(0,B.hp-dmg);B.flash=.14;B.ghostDelay=.7;B.poise-=dmg;onHitTrait(B,dmg);
     hitStop=big?.11:.07;shakeAdd(big?.5:.3);sfx.hit(big);
     dmgNum(dmg,B.x,Hq(B.x,B.z)+3.4+Math.random(),B.z,big);
     heEmit(16,true,B.x-dx/d*1.2,P.feet+1.4,B.z-dz/d*1.2);
@@ -2677,17 +2787,17 @@ function build(saved){
     PL.flasks--;PL.drink=.9;PL._healed=false;}
   function hurtPlayer(dmg,sx,sz,tell){
     if(state!=='play')return;
-    if(CHEAT.god&&!(tell==='y'&&PL.parryT>0)){if(PL.iframe>0&&PL.dodgeT>0&&PL.pdLock<=0)perfectDodge();return;}
+    if(DEV&&CHEAT.god&&!(tell==='y'&&PL.parryT>0)){if(PL.iframe>0&&PL.dodgeT>0&&PL.pdLock<=0)perfectDodge();return;}
     if(tell==='y'&&PL.parryT>0){parried();return;}
     if(PL.iframe>0){if(PL.dodgeT>0&&PL.pdLock<=0)perfectDodge();return;}
     PL.hp=Math.max(0,PL.hp-dmg);PL.hurtT=1;PL.iframe=.55;PL.drink=0;swing=null;
     const dx=P.x-sx,dz=P.z-sz,d=Math.hypot(dx,dz)||1;PL.kbx=dx/d*10;PL.kbz=dz/d*10;
     shakeAdd(.7);sfx.hurt();
-    if(PL.hp<=0){state='down';PL.downT=0;herald.tellT=0;showBanner('Wren has fallen','','dead',3.4);sfx.fall();}}
+    if(PL.hp<=0){F.deaths=(F.deaths||0)+1;F.lastDeath=elapsed;state='down';PL.downT=0;herald.tellT=0;showBanner('Wren has fallen','','dead',3.4);sfx.fall();}}
   function parry(){
     if(F.sword&&F.sheathed&&state==='play')setSheathed(false);
     if(!F.sword||state!=='play'||reading||PL.parryCD>0||PL.dodgeT>0||PL.drink>0||PL.swim)return;
-    swing=null;atkBuf=false;PL.parryT=.32;PL.parryCD=.6;PL.parryAnim=.45;PL.parryFace=swingFace();sfx.whoosh(.45);}
+    swing=null;atkBuf=false;PL.parryT=curTrait()==='quick'?.46:.32;PL.parryCD=.6;PL.parryAnim=.45;PL.parryFace=swingFace();sfx.whoosh(.45);}
   function parried(){
     const B=curG||herald;PL.parryT=0;PL.parryCD=0;PL.critT=2.2;
     hitStop=.14;shakeAdd(.45);sfx.parry();cue('Parry','#ffd84a');
@@ -2696,7 +2806,8 @@ function build(saved){
   function perfectDodge(){PL.pdLock=1;(curG||herald).slow=1.3;PL.critT=1.8;cue('Perfect dodge','#9fd2ff');sfx.perfect();}
   const cueEl=$('cue'),tellEl=$('tell'),slowEl=$('slowfx');let cueT=-1,tellT=-1,tellSrc=null;
   function cue(txt,col){cueEl.textContent=txt;cueEl.style.color=col;cueT=0;}
-  function showTell(c,src){const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT=0;tellSrc=src;herald.tellMat.color.set(col);herald.tellT=.55;src.visible=true;sfx.tell(c);}
+  function showTell(c,src){if(c==='y'&&!F.tipY){F.tipY=1;showToast('Yellow flash: right-click to parry it');}else if(c!=='y'&&!F.tipR){F.tipR=1;showToast('Red flash: press Q to roll through it');}
+const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT=0;tellSrc=src;herald.tellMat.color.set(col);herald.tellT=.55;src.visible=true;sfx.tell(c);}
   function updateCues(dt){
     if(cueT>=0){cueT+=dt;const k=cueT/.95;cueEl.style.opacity=String(sstep(0,.08,cueT)*(1-sstep(.6,1,k)));cueEl.style.transform=`translate(-50%,-50%) scale(${1+.25*(1-sstep(0,.15,cueT))})`;if(cueT>.95){cueT=-1;cueEl.style.opacity='0';}}
     if(tellT>=0){tellT+=dt;if(tellT>.5||!tellSrc){tellT=-1;tellEl.style.opacity='0';}else{
@@ -2875,13 +2986,13 @@ function build(saved){
   const cmpStrip=$('cmpStrip'),cmpItems=[];
   [['S',0],['SE',Math.PI/4],['E',Math.PI/2],['NE',3*Math.PI/4],['N',Math.PI],['NW',-3*Math.PI/4],['W',-Math.PI/2],['SW',-Math.PI/4]].forEach(([l,b])=>{const e=document.createElement('span');e.className='cmp-item card';e.textContent=l;cmpStrip.appendChild(e);cmpItems.push({e,b});});
   for(let k=0;k<24;k++){if(k%3===0)continue;const e=document.createElement('i');e.className='cmp-item tick';cmpStrip.appendChild(e);cmpItems.push({e,b:k/24*Math.PI*2});}
-  const cmpMarks=AREAS.map(A0=>{const e=document.createElement('i');e.className='cmp-item mark';e.title=A0.name;e.hidden=true;cmpStrip.appendChild(e);return {e,A:A0};});
+  const cmpMarks=AREAS.map(A0=>{const e=document.createElement('i');e.className='cmp-item mark';e.title=A0.name;e.hidden=true;cmpStrip.appendChild(e);return {e,A:A0,j:(Math.random()-.5)*.5};});
   let curArea='',areaT=0;
   function updateCompass(dt){
     const hd=Math.atan2(-Math.sin(yaw),-Math.cos(yaw));
     const place=(e,b)=>{const rel=wrapA(b-hd);if(Math.abs(rel)>Math.PI/2){e.style.display='none';return;}e.style.display='';e.style.left=(50+rel/(Math.PI/2)*50)+'%';};
     cmpItems.forEach(c=>place(c.e,c.b));
-    cmpMarks.forEach(m=>{if(!(F.disc[m.A.name]||(F.known&&F.known[m.A.name]))||m.A.name===curArea){m.e.style.display='none';return;}place(m.e,Math.atan2(m.A.x-P.x,m.A.z-P.z));});
+    cmpMarks.forEach(m=>{if(!(F.disc[m.A.name]||(F.known&&F.known[m.A.name]))||m.A.name===curArea){m.e.style.display='none';return;}const dc=!!F.disc[m.A.name];m.e.classList.toggle('rumor',!dc);place(m.e,Math.atan2(m.A.x-P.x,m.A.z-P.z)+(dc?0:m.j));});
     areaT-=dt;if(areaT<=0&&!inCave&&state==='play'){areaT=.4;const nm=areaAt(P.x,P.z);
       if(nm!==curArea){curArea=nm;$('areaName').textContent=nm;}
       if(!F.disc[curArea]&&bannerDur<=0&&!reading){F.disc[curArea]=1;showBanner(curArea,'Discovered','area',3.4);sfx.discover();}}}
@@ -2894,7 +3005,10 @@ function build(saved){
     if(PL.drink>0){PL.drink=Math.max(0,PL.drink-gdt);if(!PL._healed&&PL.drink<.45){PL._healed=true;PL.hp=Math.min(PL.max,PL.hp+45);sfx.heal();heEmit(10,false,P.x,P.feet+.6,P.z);}}
     PL.parryT=Math.max(0,PL.parryT-gdt);PL.parryCD=Math.max(0,PL.parryCD-gdt);PL.parryAnim=Math.max(0,PL.parryAnim-gdt);PL.critT=Math.max(0,PL.critT-dt);PL.pdLock=Math.max(0,PL.pdLock-dt);
     herald.slow=Math.max(0,(herald.slow||0)-dt);
-    updateSwing(gdt);updateGuardians(gdt);updateHerald(herald.slow>0?gdt*.3:gdt);updatePillars(herald.slow>0?gdt*.5:gdt);updateCues(dt);updateHE(gdt);updateWaves(gdt);updateNums(dt);
+    updateSwing(gdt);updateGuardians(gdt);updateHerald((herald.slow>0?gdt*.3:gdt)*(herald.chill>0?.72:1));
+    {const BB=curG||(fightOn&&['idle','atk','stagger'].includes(herald.s)?herald:null);if(BB){if(BB.chill>0)BB.chill-=dt;
+      if(BB.burn>0&&BB.hp>0){BB.burn-=dt;BB.bt=(BB.bt||0)-dt;if(BB.bt<=0){BB.bt=.5;BB.hp=Math.max(0,BB.hp-8);BB.ghostDelay=.4;dmgNum(8,BB.x,Hq(BB.x,BB.z)+2.4,BB.z,false);heEmit(4,true,BB.x,Hq(BB.x,BB.z)+1.5,BB.z);
+        if(BB.hp<=0){if(curG)killGuardian(curG);else killHerald();}}}}}updatePillars(herald.slow>0?gdt*.5:gdt);updateCues(dt);updateHE(gdt);updateWaves(gdt);updateNums(dt);
     if(herald.solid()){const dx=P.x-herald.x,dz=P.z-herald.z,d=Math.hypot(dx,dz);if(d<1.95&&d>.001){P.x=herald.x+dx/d*1.95;P.z=herald.z+dz/d*1.95;}}
     fogWall.visible=fightOn&&!curG;if(fogWall.visible){fogWall.material.opacity=.32+.08*Math.sin(clockT*3);fogTex.offset.x=(clockT*.02)%1;}
     if(state==='down'){PL.downT+=dt;const u=sstep(0,1.1,PL.downT);
@@ -2919,7 +3033,7 @@ function build(saved){
     const sn=Math.sin(yaw),cs=Math.cos(yaw);
     const inWater=!inCave&&P.feet<WATER_Y-.25&&!PL.swim;
     let speed=(keys.ShiftLeft||keys.ShiftRight||Math.hypot(joy.dx,joy.dy)>.95)?(inCave?9:15):(inCave?4.5:7);if(inWater)speed*=.6;if(PL.swim)speed*=.55;
-    if(CHEAT.fast)speed*=4;if(swing)speed*=.35;if(PL.drink>0)speed*=.3;
+    if(DEV&&CHEAT.fast)speed*=4;if(swing)speed*=.35;if(PL.drink>0)speed*=.3;
     let vx=(-sn*mz+cs*mx)*speed,vz=(-cs*mz-sn*mx)*speed;
     if(PL.dodgeT>0){const k=PL.dodgeT/.42;vx=PL.dx*17*k;vz=PL.dz*17*k;}
     if(swing&&swing.t>swing.D*.28&&swing.t<swing.D*.55){vx+=Math.sin(wren.face)*3;vz+=Math.cos(wren.face)*3;}
@@ -2984,13 +3098,16 @@ function build(saved){
     if(MODES[mode]==='PS1'){ps1Mat.uniforms.uNight.value=nightF;renderer.render(postPS,postCam);}
     else if(MODES[mode]==='Print'){printMat.uniforms.uNear.value=camera.near;printMat.uniforms.uFar.value=camera.far;renderer.render(postP,postCam);}
     else renderer.render(post,postCam);}
-  let titleA=0,ps1T=0;
+  let titleA=0,ps1T=0,saveT=8;
+  function saveGame(){if(state!=='play')return;try{localStorage.setItem('hollowkeep.save',JSON.stringify({v:1,x:P.x,z:P.z,feet:P.feet,yaw,pitch,inCave,got,flags:F,elapsed,dayT,hp:PL.hp,flasks:PL.flasks}));}catch(e){}}
+  window.addEventListener('beforeunload',saveGame);
   function frame(now){
     const rdt=clamp((now-last)/1000,0,.05),realDt=(now-last)/1000;last=now;
     fpsN++;fpsT+=realDt;if(fpsT>=.5){if(SET.fps)$('fps').textContent=Math.round(fpsN/fpsT)+' fps';fpsN=0;fpsT=0;}
     if(paused){renderFrame();requestAnimationFrame(frame);return;}
     const dt=rdt;clockT+=dt;seqT+=dt;
     ps1T-=dt;if(ps1T<=0){ps1T=2;patchPS1(scene);}
+    saveT-=dt;if(saveT<=0){saveT=8;saveGame();}
     cullT-=dt;if(cullT<=0&&!inCave){cullT=.25;const R=VIEWD[SET.view].f+TW*.75,cx=camera.position.x,cz=camera.position.z;vegTiles.forEach(v=>{v.m.visible=(v.cx-cx)*(v.cx-cx)+(v.cz-cz)*(v.cz-cz)<R*R;});}
     const playing=state==='play';
     if(state!=='intro'&&state!=='introOut'&&state!=='title')dayT=(dayT+dt*(keys.KeyT&&playing?28:1)/DAY_LEN)%1;
@@ -3035,7 +3152,7 @@ function build(saved){
       if(walking){P.x-=Math.sin(yaw)*dt*1.1;P.z-=Math.cos(yaw)*dt*1.1;P.feet=Hq(P.x,P.z);}
       PL.speedNow=walking?1.1:0;wren.face=yaw+Math.PI;placeCamera(dt,P.feet+1.55);
       $('titleCard').style.opacity=String(sstep(3.6,5,t)*(1-sstep(8,9.4,t)));
-      if(t>5.2&&!F._r1){F._r1=true;say(['The Keep. Still burning.']);}
+      if(t>5.2&&!F._r1){F._r1=true;sfx.motif('tower');say(['The Keep. Still burning.']);}
       if(t>9.6){$('titleCard').style.opacity='0';padTarget=0;enterPlay();
         say(['Their Lights are still out there. Six of them, hidden across the valley.','The gate will only open for the family. I have to bring their Light home first.','Bren\'s camp is still here. There is a map on the crate by the lift.']);}
     }else if(state==='ending'){
@@ -3063,7 +3180,7 @@ function build(saved){
       if(F.gateOpen&&gateT<1)gateT=Math.min(1,gateT+dt/4);
       doors.forEach(d=>{d.g.position.x=d.s*(2.5+gateT*4.6);});
       flames.forEach(f=>{const k=.85+.25*Math.sin(clockT*13+f.ph)*Math.sin(clockT*7.3+f.ph*2);f.f.scale.set(k,1.7*k,k);});
-      updateDeer(dt,playing);updateNPCs(dt);updateCamp();updateBirds(dt,clockT,playing);updateHawk(dt,clockT);updateFish(dt,playing);updateFireflies(clockT,cp.x,cp.z);
+      updateDeer(dt,playing);updateNPCs(dt);updateCamp();updateRest(dt);updateBarks(dt);updateBirds(dt,clockT,playing);updateHawk(dt,clockT);updateFish(dt,playing);updateFireflies(clockT,cp.x,cp.z);
       sky.position.copy(cp);
       sun.position.set(cp.x+lightDir.x*200,cp.y+Math.max(lightDir.y,.15)*200,cp.z+lightDir.z*200);sun.target.position.set(cp.x,cp.y-20,cp.z);sun.target.updateMatrixWorld();
     }else{
@@ -3090,6 +3207,7 @@ function build(saved){
   }
 
   if(F.equip)equipSword(F.equip);
+  got.forEach((g,i)=>{if(g)applyRestore(i,false);});if(got.some(Boolean))healTerrain();
   GUARDS.forEach(G=>{if(F.gdead[G.i]){G.dead=true;G.s='gone';G.rig.g.visible=false;}});PL.max=100+10*Object.keys(F.gdead).length;PL.hp=PL.max;
   if(F.map)CAMP.mapG.children.forEach((c,i)=>{if(i>0)c.visible=false;});
   updateKeysChip();
@@ -3104,11 +3222,19 @@ function build(saved){
     window.claude.hot.snapshot(()=>({x:P.x,z:P.z,feet:P.feet,yaw,pitch,inCave,got,flags:F,elapsed,dayT,muted,mode,cell,state:state==='play'?'play':'title'}));
   }
   $('startBtn').disabled=false;$('startBtn').textContent='Begin';
+  if(saved.resume&&saved.state!=='play'){const cb=document.createElement('button');cb.className='btn';cb.type='button';cb.textContent='Continue';$('startBtn').before(cb);
+    $('startBtn').textContent='New game';$('startBtn').removeEventListener('click',beginStory);
+    $('startBtn').addEventListener('click',()=>{try{sessionStorage.setItem('hk.new','1');}catch(e){}location.reload();});
+    cb.addEventListener('click',()=>{try{initAudio();}catch(e){}setCave(!!saved.inCave);P.x=saved.x;P.z=saved.z;P.feet=saved.feet;yaw=saved.yaw||0;pitch=saved.pitch||0;
+      if(typeof saved.hp==='number')PL.hp=Math.min(PL.max,Math.max(1,saved.hp));if(typeof saved.flasks==='number')PL.flasks=saved.flasks;
+      if(F.lantern&&inCave)lanternProp.visible=false;if(F.crank)crankProp.visible=false;$('intro').hidden=true;fade(0,.8);enterPlay();tryLock();});}
   requestAnimationFrame(frame);
 }
 
 const hot=window.claude&&window.claude.hot;
-if(hot&&hot.ready)hot.ready(start);else start((hot&&hot.data)||{});
+function bootData(d){d=d||{};if(d.state==='play')return d;try{if(sessionStorage.getItem('hk.new')){sessionStorage.removeItem('hk.new');localStorage.removeItem('hollowkeep.save');return d;}
+  const sv=JSON.parse(localStorage.getItem('hollowkeep.save')||'null');if(sv&&sv.flags)return Object.assign({},sv,{state:'title',resume:true,muted:d.muted});}catch(e){}return d;}
+if(hot&&hot.ready)hot.ready(d=>start(bootData(d)));else start(bootData((hot&&hot.data)||{}));
 })();
 </script>
 
