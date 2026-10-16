@@ -159,6 +159,30 @@ kbd{font-family:var(--font-ui);font-size:11px;padding:3px 7px;border:1px solid v
 .map-head{font-family:var(--font-display);font-size:22px;color:var(--ink);letter-spacing:.04em}
 .map-foot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 .cheat .menu-panel{width:min(60rem,100%)}
+.inv .menu-panel{width:min(66rem,100%)}
+.inv .tag{font-size:11px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase}
+.inv-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:28px}
+.inv-col{display:grid;gap:10px;align-content:start;min-width:0}
+.inv-leg{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ember);margin-top:4px}
+.inv-leg span{color:var(--dim)}
+.swords{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.scard{position:relative;background:rgba(255,255,255,.03);border:1px solid var(--line);padding:8px;display:grid;gap:3px;cursor:pointer;text-align:left;color:var(--ink);font:inherit;min-width:0}
+.scard:hover{background:rgba(240,180,64,.08)}
+.scard img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
+.scard.eq{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
+.scard.locked{cursor:default}.scard.locked img{filter:brightness(0) opacity(.35)}
+.scard .nm{font-family:var(--font-display);font-size:13px;line-height:1.2}
+.scard .st{font-size:11px;color:var(--dim)}
+.scard .lv{position:absolute;top:6px;left:8px;font-size:11px;color:var(--amber)}
+.scard .eqb{position:absolute;top:6px;right:8px;font-size:10px;letter-spacing:.12em;color:var(--on-amber);background:var(--amber);padding:1px 5px}
+.inv-sel{margin:0;font-size:13px;color:var(--dim);min-height:2.6em}
+.inv-lights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.inv-light{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);padding:6px 8px;border:1px solid var(--line)}
+.inv-light i{width:12px;height:12px;transform:rotate(45deg);border:1px solid currentColor;flex:none}
+.inv-light.on{color:var(--ink)}.inv-light.on i{background:currentColor}
+.inv-list{display:grid;gap:6px}
+.inv-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;border-bottom:1px solid var(--line);padding-bottom:5px}
+.inv-row span:last-child{color:var(--amber)}
 .cheat .cgrid{display:flex;flex-wrap:wrap;gap:8px}
 .cheat .btn{font-size:12px;padding:8px 12px}
 .cheat select{background:#0e120f;color:var(--ink);border:1px solid var(--line);padding:8px;font:inherit;min-width:0;max-width:100%}
@@ -238,7 +262,7 @@ body.in-fight .dialog{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
         <button class="slot s-right" id="slotRight" type="button" title="Sword (Right arrow)"><span class="k">→</span><svg viewBox="0 0 24 24"><path d="M14.5 3.5 20.5 3.5 20.5 9.5 10 20"/><path d="M14.5 3.5 4 14"/><path d="M6 12l6 6M4.5 19.5l3-3"/></svg><span class="n" id="nSword"></span></button>
         <button class="slot s-down" id="slotDown" type="button" title="Lights (Down arrow)"><span class="k">↓</span><svg viewBox="0 0 24 24"><path d="M12 3 18 12 12 21 6 12z"/><path d="M12 8 14.5 12 12 16 9.5 12z"/></svg><span class="n" id="nLights">0</span></button>
       </div>
-      <div class="chip keys"><span><b>WASD</b> move · <b>Shift</b> run · <b>Space</b> jump · <b>E</b> use · <b>Arrows</b> items · <b>X</b> sheathe · <b>Click</b> attack · <b>Right-click</b> parry · <b>Q</b> roll · <b>R</b> flask</span></div>
+      <div class="chip keys"><span><b>WASD</b> move · <b>Shift</b> run · <b>Space</b> jump · <b>E</b> use · <b>I</b> inventory · <b>Arrows</b> items · <b>X</b> sheathe · <b>Click</b> attack · <b>Right-click</b> parry · <b>Q</b> roll · <b>R</b> flask</span></div>
     </div>
     <div class="hud-right">
       <button class="chip btn-chip" id="menuBtn" type="button"><span>Menu</span><span class="label">Esc</span></button>
@@ -267,6 +291,19 @@ body.in-fight .dialog{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 <div class="chip pause" id="pause" hidden>Click the view to look around</div>
 <div class="chip fps" id="fps" hidden>-- fps</div>
 <section class="map-ui" id="mapUI" hidden><div class="map-frame"><div class="map-head">The Valley of the Keep</div><canvas id="mapCv" width="800" height="800"></canvas><div class="map-foot" id="mapFoot">M or Esc close · Wheel zoom · Drag to pan</div></div></section>
+<section class="menu inv" id="invUI" hidden>
+  <div class="menu-panel" role="dialog" aria-labelledby="invTitle">
+    <div class="menu-head"><h2 id="invTitle">Inventory</h2><span class="tag">I or Tab</span><button class="btn" id="invClose" type="button">Close</button></div>
+    <div class="inv-grid">
+      <div class="inv-col"><div class="inv-leg">Swords <span id="invSwCount"></span></div><div class="swords" id="invSwords"></div><p class="inv-sel" id="invSel"></p></div>
+      <div class="inv-col">
+        <div class="inv-leg">Lights</div><div class="inv-lights" id="invLights"></div>
+        <div class="inv-leg">Items</div><div class="inv-list" id="invItems"></div>
+        <div class="inv-leg">Wren</div><div class="inv-list" id="invStats"></div>
+      </div>
+    </div>
+  </div>
+</section>
 <section class="menu cheat" id="cheatUI" hidden>
   <div class="menu-panel" role="dialog" aria-labelledby="cheatTitle">
     <div class="menu-head"><h2 id="cheatTitle">Admin</h2><span class="tag">Shift+P or F2</span><button class="btn" id="cheatClose" type="button">Close</button></div>
@@ -306,7 +343,7 @@ body.in-fight .dialog{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
         <label class="set-row check" for="setShake"><span>Screen shake</span><input type="checkbox" id="setShake"></label>
       </fieldset>
       <fieldset><legend>Graphics</legend>
-        <label class="set-row" for="setStyle"><span>Look</span><select id="setStyle"><option>Print</option><option>ASCII</option><option>Pixel</option><option>Smooth</option></select></label>
+        <label class="set-row" for="setStyle"><span>Look</span><select id="setStyle"><option>PS1</option><option>Print</option><option>ASCII</option><option>Pixel</option><option>Smooth</option></select></label>
         <label class="set-row" for="setScale"><span>Render resolution</span><input type="range" id="setScale" min="0.5" max="1" step="0.05"><output id="outScale"></output></label>
         <label class="set-row" for="setShadows"><span>Shadows</span><select id="setShadows"><option value="off">Off</option><option value="low">Low</option><option value="high">High</option></select></label>
         <label class="set-row" for="setView"><span>View distance</span><select id="setView"><option value="near">Near</option><option value="medium">Medium</option><option value="far">Far</option></select></label>
@@ -510,9 +547,10 @@ function build(saved){
   let renderer;
   try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});}
   catch(e){$('glError').hidden=false;$('startBtn').hidden=true;return;}
-  const DEF_SET={sens:1,invert:false,hints:true,fov:70,dist:4.3,shake:true,style:'Print',scale:1,shadows:'high',view:'medium',cell:7,fps:false,vol:.9};
+  const DEF_SET={sens:1,invert:false,hints:true,fov:70,dist:4.3,shake:true,style:'PS1',scale:1,shadows:'high',view:'medium',cell:7,fps:false,vol:.9};
   const SET=Object.assign({},DEF_SET);
   try{const j=JSON.parse(localStorage.getItem('hollowkeep.settings')||'null');if(j&&typeof j==='object')Object.assign(SET,j);}catch(e){}
+  if(SET.lookV!==2){SET.lookV=2;SET.style='PS1';}
   function saveSet(){try{localStorage.setItem('hollowkeep.settings',JSON.stringify(SET));}catch(e){}}
   const VIEWD={near:{n:80,f:520},medium:{n:110,f:900},far:{n:160,f:1900}};
   const DPR=()=>Math.min(window.devicePixelRatio||1,1.5);
@@ -1969,14 +2007,38 @@ function build(saved){
         col=mix(col,col*vec3(0.78,0.68,0.58),smoothstep(0.12,0.5,vig));
         gl_FragColor=vec4(col,1.0);
       }`,depthTest:false,depthWrite:false});
+  /* ===== PS1 retro look: low-res, 15-bit colour with ordered dither, wobbly vertices ===== */
+  const PSU={uPS1:{value:0},uPSRes:{value:new THREE.Vector2(160,120)}};
+  const ps1Mat=new THREE.ShaderMaterial({uniforms:{tScene:{value:rt.texture},uLow:{value:new THREE.Vector2(480,270)},uRes:{value:new THREE.Vector2(1,1)},uNight:{value:0}},
+    vertexShader:'void main(){gl_Position=vec4(position.xy,0.0,1.0);}',
+    fragmentShader:`uniform sampler2D tScene;uniform vec2 uLow;uniform vec2 uRes;uniform float uNight;
+      float B2(vec2 a){a=floor(a);return fract(a.x/2.0+a.y*a.y*0.75);}
+      float B4(vec2 a){return B2(0.5*a)*0.25+B2(a);}
+      void main(){vec2 uv=gl_FragCoord.xy/uRes;vec2 px=floor(uv*uLow);vec3 c=texture2D(tScene,(px+0.5)/uLow).rgb;
+        float l=dot(c,vec3(0.299,0.587,0.114));c=mix(vec3(l),c,0.72);
+        c=pow(max(c,0.0),vec3(1.18))*vec3(1.05,0.97,0.86)*1.06;
+        c=mix(c,c*vec3(0.75,0.85,1.15),uNight*0.5);
+        float d=B4(px)-0.5;c=floor(c*31.0+d*1.1+0.5)/31.0;
+        vec2 v=uv-0.5;c*=1.0-dot(v,v)*0.7;
+        gl_FragColor=vec4(clamp(c,0.0,1.0),1.0);}`,depthTest:false,depthWrite:false});
+  const postPS=new THREE.Scene(),quadPS=new THREE.Mesh(new THREE.PlaneGeometry(2,2),ps1Mat);quadPS.frustumCulled=false;postPS.add(quadPS);
+  function patchPS1(root){root.traverse(o=>{if(!o.material)return;(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{
+      if(!m||m._ps1||m.isShaderMaterial||m.isPointsMaterial||m.isSpriteMaterial||m.isLineBasicMaterial)return;m._ps1=1;
+      const prev=m.onBeforeCompile,key=String(prev);
+      m.onBeforeCompile=function(sh,r){prev.call(this,sh,r);if(sh.vertexShader.indexOf('#include <project_vertex>')<0)return;
+        sh.uniforms.uPS1=PSU.uPS1;sh.uniforms.uPSRes=PSU.uPSRes;
+        sh.vertexShader='uniform float uPS1;\nuniform vec2 uPSRes;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nif(uPS1>0.5&&gl_Position.w>0.0){gl_Position.xy=floor(gl_Position.xy/gl_Position.w*uPSRes+0.5)/uPSRes*gl_Position.w;}');};
+      m.customProgramCacheKey=()=>key+'|ps1';m.needsUpdate=true;});});}
   const postP=new THREE.Scene(),quadP=new THREE.Mesh(new THREE.PlaneGeometry(2,2),printMat);quadP.frustumCulled=false;postP.add(quadP);
-  const MODES=['Print','ASCII','Pixel','Smooth'];
-  let mode=Math.max(0,['Print','ASCII','Pixel','Smooth'].indexOf(SET.style)),cell=SET.cell||7;
+  const MODES=['PS1','Print','ASCII','Pixel','Smooth'];
+  let mode=Math.max(0,MODES.indexOf(SET.style)),cell=SET.cell||7;
   const dbs=new THREE.Vector2();
   function resize(){
     const w=window.innerWidth,h=window.innerHeight;renderer.setPixelRatio(DPR()*(MODES[mode]==='Smooth'?SET.scale:1));renderer.setSize(w,h,false);renderer.getDrawingBufferSize(dbs);
     const M=MODES[mode];let k=1;
-    if(M==='Print'){const pw=Math.round(dbs.x*SET.scale),ph=Math.round(dbs.y*SET.scale);rt.setSize(pw,ph);printMat.uniforms.uRes.value.set(dbs.x,dbs.y);camera.aspect=w/h;k=ph/dbs.y;}
+    PSU.uPS1.value=M==='PS1'?1:0;
+    if(M==='PS1'){const lh=270,lw=Math.round(lh*w/h);rt.setSize(lw,lh);ps1Mat.uniforms.uLow.value.set(lw,lh);ps1Mat.uniforms.uRes.value.set(dbs.x,dbs.y);PSU.uPSRes.value.set(lw*.32,lh*.32);camera.aspect=w/h;k=lh/dbs.y;}
+    else if(M==='Print'){const pw=Math.round(dbs.x*SET.scale),ph=Math.round(dbs.y*SET.scale);rt.setSize(pw,ph);printMat.uniforms.uRes.value.set(dbs.x,dbs.y);camera.aspect=w/h;k=ph/dbs.y;}
     else{const cp=cell*renderer.getPixelRatio(),cols=Math.ceil(dbs.x/cp),rows=Math.ceil(dbs.y/cp);
       rt.setSize(cols*2,rows*2);postMat.uniforms.uGrid.value.set(cols,rows);postMat.uniforms.uCell.value=cp;postMat.uniforms.uMode.value=M==='Pixel'?1:0;
       camera.aspect=M==='Smooth'?w/h:cols/rows;k=M==='Smooth'?1:rows*2/dbs.y;}
@@ -1984,7 +2046,7 @@ function build(saved){
     $('modeLabel').textContent=MODES[mode];
   }
   function cycleMode(){mode=(mode+1)%MODES.length;SET.style=MODES[mode];saveSet();resize();showToast('View: '+MODES[mode]);}
-  function setCell(v){const n=clamp(v,4,14);if(n===cell)return;cell=n;SET.cell=n;if(MODES[mode]!=='ASCII'&&MODES[mode]!=='Pixel')mode=1;SET.style=MODES[mode];saveSet();resize();showToast('Glyph size '+cell+'px');}
+  function setCell(v){const n=clamp(v,4,14);if(n===cell)return;cell=n;SET.cell=n;if(MODES[mode]!=='ASCII'&&MODES[mode]!=='Pixel')mode=MODES.indexOf('ASCII');SET.style=MODES[mode];saveSet();resize();showToast('Glyph size '+cell+'px');}
   window.addEventListener('resize',resize);
   $('modeBtn').addEventListener('click',e=>{cycleMode();e.currentTarget.blur();});
 
@@ -2190,10 +2252,13 @@ function build(saved){
   window.addEventListener('keydown',e=>{
     keys[e.code]=true;
     if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)&&state!=='title')e.preventDefault();
+    if(e.key==='Alt'){e.preventDefault();if(!e.repeat&&state==='play'&&!paused&&!ovl&&!altFree){altFree=true;dragging=false;if(document.pointerLockElement)document.exitPointerLock();updatePause();}return;}
     if(e.repeat)return;
-    if(ovl){if(e.code==='Escape'||(ovl==='map'&&e.code==='KeyM')||(ovl==='cheat'&&(e.code==='F2'||(e.code==='KeyP'&&e.shiftKey)))){e.preventDefault();closeOvl();}return;}
+    if(e.code==='Tab')e.preventDefault();
+    if(ovl){if(e.code==='Escape'||(ovl==='map'&&e.code==='KeyM')||(ovl==='inv'&&(e.code==='KeyI'||e.code==='Tab'))||(ovl==='cheat'&&(e.code==='F2'||(e.code==='KeyP'&&e.shiftKey)))){e.preventDefault();closeOvl();}return;}
     if(!paused&&state==='play'){
       if(e.code==='KeyM'){if(F.map)openOvl('map');else showToast('You have no map yet');return;}
+      if(e.code==='KeyI'||e.code==='Tab'){e.preventDefault();openOvl('inv');return;}
       if(e.code==='F2'||(e.code==='KeyP'&&e.shiftKey)){e.preventDefault();openOvl('cheat');return;}}
     if(e.code==='Escape'&&cine&&state==='intro'){endCine();return;}
     if(e.code==='Escape'&&state==='play'){if(paused)closeMenu();else if(!locked)openMenu();return;}
@@ -2215,8 +2280,9 @@ function build(saved){
     if(e.code==='BracketLeft'||e.code==='Minus')setCell(cell-1);
     if(e.code==='BracketRight'||e.code==='Equal')setCell(cell+1);
   });
-  window.addEventListener('keyup',e=>{keys[e.code]=false;});
-  window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+  window.addEventListener('keyup',e=>{keys[e.code]=false;
+    if(e.key==='Alt'){e.preventDefault();if(altFree){altFree=false;if(!paused&&state==='play')tryLock();updatePause();}}});
+  window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false;if(altFree){altFree=false;updatePause();}});
   const SENS=.0022;
   function look(dx,dy){if(state!=='play'||paused)return;const k=SENS*SET.sens;yaw-=dx*k;pitch=clamp(pitch-dy*k*(SET.invert?-1:1),-1.15,1.0);}
   function placeCamera(dt,pivotY){
@@ -2230,20 +2296,20 @@ function build(saved){
     camEff=d;camera.position.set(cx,cy,cz);camera.rotation.set(pitch,yaw,0);
   }
   let locked=false,lockFailed=false,dragging=false,lastX=0,lastY=0;
-  let lockFails=0,paused=false,wasLocked=false;
-  function tryLock(){if(isTouch||lockFailed||paused)return;if(!canvas.requestPointerLock){lockFailed=true;return;}try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>onLockFail());}catch(e){onLockFail();}}
+  let lockFails=0,paused=false,wasLocked=false,altFree=false;
+  function tryLock(){if(isTouch||lockFailed||paused||ovl||altFree)return;if(!canvas.requestPointerLock){lockFailed=true;return;}try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>onLockFail());}catch(e){onLockFail();}}
   function onLockFail(){lockFails++;if(lockFails>=3){lockFailed=true;$('pause').hidden=true;}}
-  document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;if(locked){lockFails=0;wasLocked=true;}else if(wasLocked&&state==='play'&&!paused&&!ovl)openMenu();updatePause();});
+  document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===canvas;if(locked&&(ovl||paused||altFree)){document.exitPointerLock();return;}if(locked){lockFails=0;wasLocked=true;}else if(wasLocked&&state==='play'&&!paused&&!ovl&&!altFree)openMenu();updatePause();});
   document.addEventListener('pointerlockerror',onLockFail);
-  function updatePause(){$('pause').hidden=locked||state!=='play'||lockFailed||isTouch||!!reading||paused;}
+  function updatePause(){$('pause').hidden=locked||state!=='play'||lockFailed||isTouch||!!reading||paused||altFree;}
   /* ===== valley map + admin panel ===== */
   const CHEAT=Object.assign({god:false,fast:false,map:false},(()=>{try{return JSON.parse(localStorage.getItem('hollowkeep.cheat')||'{}');}catch(e){return {};}})());
   const saveCheat=()=>{try{localStorage.setItem('hollowkeep.cheat',JSON.stringify(CHEAT));}catch(e){}};
   let ovl=null;
-  function openOvl(kind){if(paused||state!=='play')return;paused=true;ovl=kind;for(const k in keys)keys[k]=false;$(kind==='map'?'mapUI':'cheatUI').hidden=false;$('pause').hidden=true;
-    if(document.pointerLockElement)document.exitPointerLock();if(kind==='map'){mapView.cx=0;mapView.cz=0;mapView.zoom=0;drawMap();}else syncCheat();}
-  function closeOvl(){if(!ovl)return;$(ovl==='map'?'mapUI':'cheatUI').hidden=true;ovl=null;paused=false;tryLock();updatePause();}
-  function updateKeysChip(){const k=document.querySelector('.keys');if(k&&F.map&&!k.innerHTML.includes('map'))k.innerHTML=k.innerHTML.replace('<b>Arrows</b> items','<b>M</b> map · <b>Arrows</b> items');}
+  function openOvl(kind){if(paused||state!=='play')return;paused=true;ovl=kind;for(const k in keys)keys[k]=false;$(({map:'mapUI',cheat:'cheatUI',inv:'invUI'})[kind]).hidden=false;$('pause').hidden=true;
+    if(document.pointerLockElement)document.exitPointerLock();if(kind==='map'){mapView.cx=0;mapView.cz=0;mapView.zoom=0;drawMap();}else if(kind==='inv')drawInv();else syncCheat();}
+  function closeOvl(noLock){if(!ovl)return;$(({map:'mapUI',cheat:'cheatUI',inv:'invUI'})[ovl]).hidden=true;ovl=null;paused=false;if(!noLock)tryLock();updatePause();}
+  function updateKeysChip(){const k=document.querySelector('.keys');if(k&&F.map&&!k.innerHTML.includes('<b>M</b>'))k.innerHTML=k.innerHTML.replace('<b>I</b> inventory','<b>M</b> map · <b>I</b> inventory');}
   const MAP_PRINTED=new Set(['The Burning Keep','The Hollow Pass',"Ama's Hearth",'Old Millbrook','Ithwood','The Standing Stones','Star Cradle','Mirror Lake','Stillwater','Cinder Mere','The Old Forge',"Sel's Crossing","Keeper's Mine"]);
   let mapBase=null;const mapView={cx:0,cz:0,zoom:0};
   function buildMapBase(){const N=TN+1,cv=document.createElement('canvas');cv.width=cv.height=N;const cx=cv.getContext('2d'),img=cx.createImageData(N,N),D=img.data;
@@ -2314,8 +2380,39 @@ function build(saved){
     else if(c==='herald'){closeOvl();respawnBoss();return;}
     else if(c==='guards'){GUARDS.forEach(G=>{delete F.gdead[G.i];G.dead=false;G.rig.g.visible=true;G.rig.g.position.y=0;G.rig.torso.rotation.set(0,0,0);resetGuardian(G);});if(curG)endGuardianFight();LDEF.forEach((L,i)=>{if(got[i]){}});showToast('Guardians are back');}
     else if(c==='tp'){const t=tpList()[+$('chTp').value];if(t){closeOvl();tpTo(t[1],t[2]);}return;}
-    else if(c==='openmap'){F.map=true;updateKeysChip();CHEAT.tpArmed=true;closeOvl();openOvl('map');return;}
+    else if(c==='openmap'){F.map=true;updateKeysChip();CHEAT.tpArmed=true;closeOvl(true);openOvl('map');return;}
     b.blur();}));
+  /* ===== inventory ===== */
+  const SWORD_HINT={dirk:'A cairn near the mine.',pilgrim:'Pilgrims leave blades in a village well.',bone:'An altar somewhere in the ash.',warden:'A stone warden holds it in the snow.',
+    hearth:'Still in the anvil where it was forged.',frost:'An island in a cold lake.',star:'Where the stars came down.',ash:'Carried by the thing on the pass.'};
+  let swordThumbs=null;
+  function makeThumbs(){const S=160,rt=new THREE.WebGLRenderTarget(S,S),sc=new THREE.Scene();sc.add(new THREE.AmbientLight('#ffffff',.45));
+    const dl=new THREE.DirectionalLight('#ffffff',.75);dl.position.set(1,2,3);sc.add(dl);
+    const cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,20);cam.position.set(0,0,5);
+    const out={},buf=new Uint8Array(S*S*4),oc=new THREE.Color();renderer.getClearColor(oc);const oa=renderer.getClearAlpha();
+    const ps=PSU.uPS1.value;PSU.uPS1.value=0;
+    SWORDS.forEach(d=>{const g=new THREE.Group(),inner=new THREE.Group();g.add(inner);buildSwordModel(inner,d);g.rotation.set(0,.5,-.78);sc.add(g);g.updateMatrixWorld(true);
+      const box=new THREE.Box3().setFromObject(g),c=box.getCenter(new THREE.Vector3()),sz=box.getSize(new THREE.Vector3());g.position.sub(c);
+      const h=Math.max(sz.x,sz.y)*.58;cam.left=-h;cam.right=h;cam.top=h;cam.bottom=-h;cam.updateProjectionMatrix();
+      renderer.setRenderTarget(rt);renderer.setClearColor(0x000000,0);renderer.clear();renderer.render(sc,cam);renderer.readRenderTargetPixels(rt,0,0,S,S,buf);
+      const cv=document.createElement('canvas');cv.width=cv.height=S;const cx=cv.getContext('2d'),img=cx.createImageData(S,S);
+      for(let y=0;y<S;y++)for(let x=0;x<S;x++){const si=((S-1-y)*S+x)*4,di=(y*S+x)*4;img.data[di]=buf[si];img.data[di+1]=buf[si+1];img.data[di+2]=buf[si+2];img.data[di+3]=buf[si+3];}
+      cx.putImageData(img,0,0);out[d.id]=cv.toDataURL();sc.remove(g);});
+    renderer.setRenderTarget(null);renderer.setClearColor(oc,oa);rt.dispose();PSU.uPS1.value=ps;return out;}
+  function drawInv(){if(!swordThumbs){try{swordThumbs=makeThumbs();}catch(e){swordThumbs={};}}
+    const own=F.swords.length;$('invSwCount').textContent=own+' / '+SWORDS.length;
+    $('invSwords').innerHTML=SWORDS.map(d=>{const has=F.swords.includes(d.id),eq=F.equip===d.id;
+      return `<button type="button" class="scard${eq?' eq':''}${has?'':' locked'}" data-sw="${d.id}"><span class="lv">Lv ${d.lv}</span>${eq?'<span class="eqb">EQUIPPED</span>':''}
+        <img alt="" src="${swordThumbs[d.id]||''}"><span class="nm">${has?d.name:'Unknown blade'}</span><span class="st">${has?d.dmg+' dmg · '+(d.spd>=1.05?'fast':d.spd<=.86?'heavy':'balanced'):'Not found yet'}</span></button>`;}).join('');
+    const cur=SWD[F.equip];$('invSel').textContent=cur?'Equipped: '+cur.name+'. Click another sword to switch.':'You have no sword yet. Click a slot for a hint.';
+    $('invLights').innerHTML=LDEF.map((L,i)=>`<div class="inv-light${got[i]?' on':''}" style="color:${got[i]?L.color:''}"><i></i>${L.name.replace("'s Light",'')}</div>`).join('');
+    const gd=Object.keys(F.gdead).length,row=(a,b)=>`<div class="inv-row"><span>${a}</span><span>${b}</span></div>`;
+    $('invItems').innerHTML=row('Flasks',F.sword?PL.flasks+' / 3':'None')+row('Lantern',F.lantern?(F.lanternOn?'Lit':'Out'):'None')+row('Valley map',F.map?'Press M':'Not found')+row('Lights',got.filter(Boolean).length+' / 6');
+    $('invStats').innerHTML=row('Health',Math.round(PL.hp)+' / '+PL.max)+row('Damage',cur?cur.dmg:'-')+row('Guardians felled',gd+' / 6')+row('The Herald',F.herald?'Felled':'Waiting')+row('Places discovered',Object.keys(F.disc).length);}
+  $('invSwords').addEventListener('click',e=>{const b=e.target.closest('[data-sw]');if(!b)return;const id=b.dataset.sw,d=SWD[id];
+    if(!F.swords.includes(id)){$('invSel').textContent='Hint: '+SWORD_HINT[id];return;}
+    if(F.equip!==id){equipSword(id);if(F.sheathed)setSheathed(true);sfx.clank(.5);updateSlots();}drawInv();$('invSel').textContent='Equipped: '+d.name+' · '+d.dmg+' damage';});
+  $('invClose').addEventListener('click',()=>closeOvl());
   /* settings menu */
   const menuEl=$('menu');
   const ctl={sens:['setSens','outSens',v=>v.toFixed(2)+'x'],fov:['setFov','outFov',v=>v+'°'],dist:['setDist','outDist',v=>v.toFixed(1)+' m'],
@@ -2345,7 +2442,7 @@ function build(saved){
   function closeMenu(){if(!paused)return;paused=false;menuEl.hidden=true;tryLock();updatePause();}
   $('resumeBtn').addEventListener('click',closeMenu);
   $('menuBtn').addEventListener('click',e=>{e.currentTarget.blur();if(document.pointerLockElement)document.exitPointerLock();else openMenu();});
-  canvas.addEventListener('mousedown',e=>{if(reading&&locked){advanceRead();return;}if(state!=='play')return;
+  canvas.addEventListener('mousedown',e=>{if(reading&&locked){advanceRead();return;}if(state!=='play'||altFree)return;
     if(e.button===2){parry();return;}
     if(locked){if(F.sword)attack();return;}
     if(lockFailed&&F.sword)clickStart={x:e.clientX,y:e.clientY};
@@ -2884,14 +2981,16 @@ function build(saved){
   function renderFrame(){
     if(MODES[mode]==='Smooth'){renderer.setRenderTarget(null);renderer.render(scene,camera);return;}
     renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);
-    if(MODES[mode]==='Print'){printMat.uniforms.uNear.value=camera.near;printMat.uniforms.uFar.value=camera.far;renderer.render(postP,postCam);}
+    if(MODES[mode]==='PS1'){ps1Mat.uniforms.uNight.value=nightF;renderer.render(postPS,postCam);}
+    else if(MODES[mode]==='Print'){printMat.uniforms.uNear.value=camera.near;printMat.uniforms.uFar.value=camera.far;renderer.render(postP,postCam);}
     else renderer.render(post,postCam);}
-  let titleA=0;
+  let titleA=0,ps1T=0;
   function frame(now){
     const rdt=clamp((now-last)/1000,0,.05),realDt=(now-last)/1000;last=now;
     fpsN++;fpsT+=realDt;if(fpsT>=.5){if(SET.fps)$('fps').textContent=Math.round(fpsN/fpsT)+' fps';fpsN=0;fpsT=0;}
     if(paused){renderFrame();requestAnimationFrame(frame);return;}
     const dt=rdt;clockT+=dt;seqT+=dt;
+    ps1T-=dt;if(ps1T<=0){ps1T=2;patchPS1(scene);}
     cullT-=dt;if(cullT<=0&&!inCave){cullT=.25;const R=VIEWD[SET.view].f+TW*.75,cx=camera.position.x,cz=camera.position.z;vegTiles.forEach(v=>{v.m.visible=(v.cx-cx)*(v.cx-cx)+(v.cz-cz)*(v.cz-cz)<R*R;});}
     const playing=state==='play';
     if(state!=='intro'&&state!=='introOut'&&state!=='title')dayT=(dayT+dt*(keys.KeyT&&playing?28:1)/DAY_LEN)%1;
