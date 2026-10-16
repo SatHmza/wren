@@ -187,6 +187,14 @@ kbd{font-family:var(--font-ui);font-size:11px;padding:3px 7px;border:1px solid v
 .inv-list{display:grid;gap:6px}
 .inv-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;border-bottom:1px solid var(--line);padding-bottom:5px}
 .inv-row span:last-child{color:var(--amber)}
+.forge-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;border-bottom:1px solid var(--line);padding:8px 0;font-size:14px}
+.forge-row .fn{font-family:var(--font-display)}.forge-row .fd{color:var(--dim);font-size:12px}
+.forge-row .btn{font-size:12px;padding:8px 12px}.forge-row .btn:disabled{filter:grayscale(.9) brightness(.6);cursor:default}
+.mobbar{position:fixed;left:0;top:0;z-index:19;pointer-events:none;display:grid;gap:3px;justify-items:center;transform:translate(-50%,-100%)}
+.mobbar b{font-weight:400;font-size:12px;color:var(--ink);text-shadow:0 1px 3px #000;white-space:nowrap}
+.mobbar b.rv{color:#ff7a5a}
+.mobbar i{display:block;width:70px;height:4px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25)}
+.mobbar i u{display:block;height:100%;background:#d24a3a;text-decoration:none}
 .cheat .cgrid{display:flex;flex-wrap:wrap;gap:8px}
 .cheat .btn{font-size:12px;padding:8px 12px}
 .cheat select{background:#0e120f;color:var(--ink);border:1px solid var(--line);padding:8px;font:inherit;min-width:0;max-width:100%}
@@ -295,6 +303,20 @@ body.in-fight .dialog{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 <div class="chip pause" id="pause" hidden>Click the view to look around</div>
 <div class="chip fps" id="fps" hidden>-- fps</div>
 <section class="map-ui" id="mapUI" hidden><div class="map-frame"><div class="map-head">The Valley of the Keep</div><canvas id="mapCv" width="800" height="800"></canvas><div class="map-foot" id="mapFoot">M or Esc close · Wheel zoom · Drag to pan</div></div></section>
+<section class="menu" id="choiceUI" hidden>
+  <div class="menu-panel" role="dialog" aria-labelledby="choiceTitle" style="width:min(38rem,100%)">
+    <div class="menu-head"><h2 id="choiceTitle">The Hollow One kneels</h2></div>
+    <p class="inv-sel" id="choiceText">It does not raise its claws. It looks at the six Lights in my hands like something it lost.</p>
+    <div class="cgrid" style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn" type="button" id="chStrike">Strike</button><button class="btn" type="button" id="chName" hidden>Say his name: Ost</button></div>
+  </div>
+</section>
+<section class="menu inv" id="forgeUI" hidden>
+  <div class="menu-panel" role="dialog" aria-labelledby="forgeTitle">
+    <div class="menu-head"><h2 id="forgeTitle">The Old Forge</h2><span class="tag" id="forgeEmbers"></span><button class="btn" id="forgeClose" type="button">Close</button></div>
+    <p class="inv-sel" id="forgeNote">Hask heats the steel. Each tempering makes a blade 12% stronger, up to +3. Embers come from the Ashen you defeat.</p>
+    <div class="inv-list" id="forgeList"></div>
+  </div>
+</section>
 <section class="menu inv" id="invUI" hidden>
   <div class="menu-panel" role="dialog" aria-labelledby="invTitle">
     <div class="menu-head"><h2 id="invTitle">Inventory</h2><span class="tag">I or Tab</span><button class="btn" id="invClose" type="button">Close</button></div>
@@ -319,7 +341,9 @@ body.in-fight .dialog{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
       </fieldset>
       <fieldset><legend>Give</legend><div class="cgrid">
         <button class="btn" type="button" data-ch="swords">All swords</button><button class="btn" type="button" data-ch="lights">All Lights</button>
-        <button class="btn" type="button" data-ch="map">Map</button><button class="btn" type="button" data-ch="heal">Full heal</button><button class="btn" type="button" data-ch="disc">Discover all places</button></div>
+        <button class="btn" type="button" data-ch="map">Map</button><button class="btn" type="button" data-ch="heal">Full heal</button><button class="btn" type="button" data-ch="disc">Discover all places</button><button class="btn" type="button" data-ch="embers">+100 embers</button></div>
+      </fieldset>
+      <fieldset><legend>Playtest log</legend><p class="inv-sel" id="recSum"></p><div class="cgrid"><button class="btn" type="button" data-ch="recdl">Download log</button><button class="btn" type="button" data-ch="recclr">Clear log</button></div>
       </fieldset>
       <fieldset><legend>World</legend><div class="cgrid">
         <button class="btn" type="button" data-ch="day">Day</button><button class="btn" type="button" data-ch="dusk">Dusk</button><button class="btn" type="button" data-ch="night">Night</button>
@@ -442,7 +466,7 @@ const PASS_ANG=.55;
 const RIV=a=>1290+80*Math.sin(3*a+.7)+40*Math.sin(7*a+2);
 const riverDist=(x,z)=>Math.abs(Math.hypot(x,z)-RIV(Math.atan2(z,x)));
 const forestDensity=(x,z)=>fbm(x*.009+50,z*.009+20);
-const LAKES=[[1126,-.85,110,14],[700,1.9,78,0],[1718,2.2,90,0]].map(([r,a,R,isl])=>({x:Math.cos(a)*r,z:Math.sin(a)*r,r:R,isl}));
+const LAKES=[[1126,-.85,110,14],[700,1.9,78,0],[1718,2.2,90,10]].map(([r,a,R,isl])=>({x:Math.cos(a)*r,z:Math.sin(a)*r,r:R,isl}));
 const lakeNear=(x,z,m)=>LAKES.some(L=>Math.hypot(x-L.x,z-L.z)<L.r+m);
 const BIOMES={gold:{c:.55,w:.85},ash:{c:2.75,w:1.0},snow:{c:-1.75,w:.95}};
 function biomeW(x,z){const r=Math.hypot(x,z),a=Math.atan2(z,x)+(fbm(x*.0016+3,z*.0016+8)-.5)*.9;
@@ -478,6 +502,8 @@ const ARENA=(()=>{const p=polar(330,PASS_ANG);return {x:p.x,z:p.z,h:pathInfo(p.x
 const RESPAWN=polar(400,PASS_ANG);
 const VILLAGES=[[1446,.95,46],[1030,-2.35,40]].map(([r,a,R])=>{const x=Math.cos(a)*r,z=Math.sin(a)*r;return {x,z,r:R,h:Math.max(2.2,rawH(x,z))};});
 const FORGE=polar(742,1.6);
+const TR_H=260,TROOMS=[0,1,2,3,4,5,6,7].map(k=>({k,x:1985+(k%4)*125,z:2005+Math.floor(k/4)*150,r:24}));
+const SEC7=(()=>{const p=polar(2120,-.25);return {x:p.x,z:p.z,h:rawH(p.x,p.z)};})();
 /* bridge */
 const BR_A=.64,BR_C=polar(RIV(.64),BR_A),BU={x:Math.cos(BR_A),z:Math.sin(BR_A)},BW={x:-Math.sin(BR_A),z:Math.cos(BR_A)},BR_L=14;
 const deckY=s=>{const u=s/BR_L;return 1.5+2.3*(1-u*u);};
@@ -492,6 +518,8 @@ function H(x,z){
   h=lerp(h,EXIT_H,1-sstep(8,24,Math.hypot(x-HUT.x,z-HUT.z)));
   for(const v of VILLAGES)h=lerp(h,v.h,1-sstep(v.r,v.r+30,Math.hypot(x-v.x,z-v.z)));
   h=lerp(h,TOWER.base,1-sstep(50,78,Math.hypot(x,z)));
+  h=lerp(h,SEC7.h,1-sstep(28,48,Math.hypot(x-SEC7.x,z-SEC7.z)));
+  if(x>1900&&z>1930)for(const R of TROOMS)h=lerp(h,TR_H,1-sstep(R.r+4,R.r+16,Math.hypot(x-R.x,z-R.z)));
   h=lerp(h,Math.min(h,1.7),1-sstep(18,45,Math.hypot(x-BR_C.x,z-BR_C.z)));
   for(const L of LAKES){const d=Math.hypot(x-L.x,z-L.z);h=lerp(-3.2,h,sstep(L.r*.75,L.r+25,d));if(L.isl)h=lerp(h,1.6,1-sstep(L.isl*.6,L.isl,d));}
   _rd=riverDist(x,z);h=lerp(-2.7,h,sstep(8,16,_rd));
@@ -902,9 +930,10 @@ function build(saved){
     {id:'frost',name:'Frostfang',model:'sword2c',len:1.5,dmg:205,spd:.86,trail:'#9fe6ff',tint:'#bfe9ff',glow:'#2a8ac0'},
     {id:'star',name:'Starwake',model:'ornate',len:1.15,dmg:240,spd:1.05,trail:'#c9a6ff'},
     {id:'ash',name:"Herald's Ashblade",model:'herald',len:1.3,dmg:290,spd:.92,trail:'#ff5a1a'},
+    {id:'unlit',name:'The Unlit Blade',model:'unlit',len:1.4,dmg:330,spd:1.0,trail:'#9a6aff'},
   ];
   const SWD={};SWORDS.forEach((d,i)=>{d.lv=i+1;SWD[d.id]=d;});
-  const TRAITS={dirk:['quick','Wider parry window'],pilgrim:['steady','+25% damage at full health'],bone:['leech','Heals you a little on every hit'],warden:['break','Breaks guard twice as fast'],
+  const TRAITS={unlit:['void','Burns, slows and heals you'],dirk:['quick','Wider parry window'],pilgrim:['steady','+25% damage at full health'],bone:['leech','Heals you a little on every hit'],warden:['break','Breaks guard twice as fast'],
     hearth:['burn','Sets enemies on fire'],frost:['chill','Slows enemies down'],star:['star','Lands extra critical hits'],ash:['ember','Burns enemies and heals you']};
   SWORDS.forEach(d=>{d.trait=TRAITS[d.id][0];d.tdesc=TRAITS[d.id][1];});
   const curTrait=()=>(SWD[F.equip]||{}).trait;
@@ -913,11 +942,12 @@ function build(saved){
     if(t==='leech'||t==='ember')PL.hp=Math.min(PL.max,PL.hp+Math.max(2,dmg*.02));
     if(t==='break')B.poise-=dmg;
     if(t==='burn'||t==='ember')B.burn=3;
-    if(t==='chill')B.chill=1.6;}
-  const ashGlass=new THREE.MeshLambertMaterial({color:'#1a1412'}),ashEmber=new THREE.MeshBasicMaterial({color:'#ff6a20'}),ashStone=new THREE.MeshLambertMaterial({color:'#4c4642'});
+    if(t==='chill')B.chill=1.6;
+    if(t==='void'){B.burn=3;B.chill=1.6;PL.hp=Math.min(PL.max,PL.hp+Math.max(2,dmg*.02));}}
+  const ashGlass0=new THREE.MeshLambertMaterial({color:'#1a1412'}),ashEmber0=new THREE.MeshBasicMaterial({color:'#ff6a20'}),unlitGlass=new THREE.MeshLambertMaterial({color:'#0c0a12'}),unlitGlow=new THREE.MeshBasicMaterial({color:'#9a6aff'}),ashStone=new THREE.MeshLambertMaterial({color:'#4c4642'});
   function buildSwordModel(parent,def){
     if(def.model==='ornate'){buildSword(parent,def.len);return;}
-    if(def.model==='herald'){const bl=def.len-.15;
+    if(def.model==='herald'||def.model==='unlit'){const U=def.model==='unlit',ashGlass=U?unlitGlass:ashGlass0,ashEmber=U?unlitGlow:ashEmber0,bl=def.len-.15;
       const bld=mesh(new THREE.CylinderGeometry(.02,.075,bl,4),ashGlass,0,.08+bl/2,0,parent,false);bld.rotation.y=Math.PI/4;bld.scale.set(1,1,.28);
       for(const sd of [-1,1]){const e=mesh(new THREE.BoxGeometry(.012,bl*.9,.03),ashEmber,sd*.05,.08+bl*.45,0,parent,false);e.rotation.z=-sd*.03;}
       mesh(new THREE.BoxGeometry(.32,.06,.08),ashStone,0,.03,0,parent,false);
@@ -1185,6 +1215,73 @@ function build(saved){
       const g=(.35+.25*Math.sin(t*3+a.ph))*f;if(sn){aCol[i*3]=g*1.25;aCol[i*3+1]=g*1.3;aCol[i*3+2]=g*1.4;}else if(gd){aCol[i*3]=g*1.1;aCol[i*3+1]=g*.85;aCol[i*3+2]=g*.3;}else{aCol[i*3]=g*1.1;aCol[i*3+1]=g*.75;aCol[i*3+2]=g*.6;}}
     ashGeo.attributes.position.needsUpdate=true;ashGeo.attributes.color.needsUpdate=true;
   }
+
+  /* ===== landmarks, oddities and lore ===== */
+  const LMC={};const lm=(c,b)=>LMC[c+(b?'b':'')]||(LMC[c+(b?'b':'')]=b?new THREE.MeshBasicMaterial({color:c}):new THREE.MeshLambertMaterial({color:c}));
+  const LORE=[
+    {id:'tree',title:'The God-Tree',pages:['Carved into the root: ITH PLANTED ONE TREE FOR EVERY CHILD BORN IN THE VALLEY.','This one was for the first child. It died the night the tower caught fire.']},
+    {id:'colossus',title:'The Fallen Colossus',pages:['AUN MADE GIANTS TO HOLD THE MOUNTAINS UP.','When the Ashblight came, they knelt. This one tried to stand. It burned standing.']},
+    {id:'giant',title:'The Frozen Giant',pages:['SEL AND VEY FROZE HIM HERE TOGETHER, TO KEEP THE ASH FROM CROSSING THE PEAKS.','He is still holding his breath.']},
+    {id:'ferry',title:'The Drowned Ferry',pages:['The boat\'s name is scratched off. Under it, older letters: FOR THE ONE WHO CROSSES LAST.','The Ferryman carried every god across the river once. All but one.']},
+    {id:'hearth',title:'A Hearthstone',pages:['AMA BAKED SEVEN LOAVES EVERY MORNING.','Six for her children. The seventh she left on the windowsill and never said for whom.']},
+    {id:'stars',title:'A Star Chart',pages:['A map of the sky, scratched into stone. Six stars are named.','A seventh is drawn and then scraped away so hard the chisel broke.']},
+    {id:'oath',title:'The Keeper\'s Oath',pages:['WE KEEP THE LIGHTS SO THE GODS MAY REST.','Below it, in a newer hand: there were never only six.']},
+    {id:'blight',title:'On the Ashblight',pages:['It does not kill a god. It makes the world forget them.','A forgotten god burns until there is nothing left to forget.']},
+    {id:'ressa',title:'A Keeper\'s Mark',pages:['A keeper\'s mark, and a name: Ressa.','"If you are reading this, little bird, the lift still works. Go up. Do not wait for me."','Ressa. My mother.']},
+    {id:'feast',title:'The Seventh Feast',pages:['The first ash fell on the night of the seventh feast.','Six chairs were full. One chair had been carried down to the river years before.']},
+    {id:'seventh',title:'The Seventh Name',pages:['Here a name was drowned so no one would say it again: OST.','Ost of the Hollow. The seventh child. The one the family chose to forget.','Forgotten things do not die. They burn. I know what waits at the top of the tower now.']},
+    {id:'unlit',title:'The Last Keeper of Ost',pages:['I KEPT OST\'S LIGHT WHEN NO ONE ELSE WOULD.','When they forgot him, I forgot myself. If you go up, say his name. Say it kindly.']}];
+  const LMK=[],ODD=[],LORE_SPOTS=[],CACHES=[];
+  function lmG(x,z,ry){const g=new THREE.Group();g.position.set(x,Hq(x,z),z);g.rotation.y=ry||0;world.add(g);return g;}
+  function addLore(id,x,z,cond){const g=lmG(x,z,rand(0,6.28));mesh(new THREE.BoxGeometry(1.2,1.9,.35),lm('#4a4844'),0,.85,0,g);for(let k=0;k<3;k++)mesh(new THREE.BoxGeometry(.75,.05,.03),lm('#9fe6ff',true),0,1.25-k*.3,.19,g,false);
+    CIRC.push({x,z,r:.8});CLEAR.push({x,z,r:4});LORE_SPOTS.push({id,x,z,cond,g});}
+  function addCache(id,x,z,n){const g=lmG(x,z,rand(0,6.28));mesh(new THREE.BoxGeometry(.9,.55,.6),woodMat,0,.28,0,g);const lid=mesh(new THREE.BoxGeometry(.95,.14,.65),lm('#c79a3e'),0,.62,0,g);
+    CIRC.push({x,z,r:.6});CLEAR.push({x,z,r:3});CACHES.push({id,x,z,n,lid});}
+  {/* the God-Tree, Golden Reach */const p=polar(1150,.05),g=lmG(p.x,p.z),bark=lm('#2e2620');
+    mesh(new THREE.CylinderGeometry(4.5,8,80,10).translate(0,40,0),bark,0,0,0,g);
+    for(let k=0;k<7;k++){const b=new THREE.Mesh(new THREE.CylinderGeometry(.8,1.8,34,6).translate(0,17,0),bark);b.position.set(0,44+k*4,0);b.rotation.set(.9+k*.05,k*.9,0);b.castShadow=true;g.add(b);}
+    const fr=mesh(new THREE.SphereGeometry(2.6,10,8),lm('#ffd27a',true),0,84,0,g,false);mesh(new THREE.BoxGeometry(3.4,5,2),lm('#0b0a09',true),0,2.5,7.4,g,false);
+    CIRC.push({x:p.x,z:p.z,r:8.6});CLEAR.push({x:p.x,z:p.z,r:42});LMK.push({name:'The God-Tree',x:p.x,z:p.z});addLore('tree',p.x+4,p.z+12);addCache('lm_tree',p.x-5,p.z+11,24);}
+  {/* the Fallen Colossus, Ashfall */const p=polar(1250,2.95),g=lmG(p.x,p.z,.4),st=lm('#3a3532'),em=lm('#ff6a20',true);
+    const head=mesh(new THREE.BoxGeometry(14,16,14),st,0,5,0,g);head.rotation.set(.3,0,.5);for(const sd of [-1,1])mesh(new THREE.BoxGeometry(2.4,1.6,.5),em,sd*3.2,7.5,7.1,g,false);
+    for(let k=0;k<5;k++){const f=mesh(new THREE.BoxGeometry(2,2,10),st,22+k*2.6,1.2,-8+k*.8,g);f.rotation.y=.2+k*.08;}
+    const bl=mesh(new THREE.BoxGeometry(2.6,44,.7),lm('#1a1412'),-20,20,-6,g);bl.rotation.z=.18;for(const sd of [-1,1]){const e=mesh(new THREE.BoxGeometry(.12,42,.75),em,-20+sd*1.3,20,-6,g,false);e.rotation.z=.18;}
+    CIRC.push({x:p.x,z:p.z,r:10});CLEAR.push({x:p.x,z:p.z,r:48});LMK.push({name:'The Fallen Colossus',x:p.x,z:p.z});
+    const q=polar(1250-13,2.95);addLore('colossus',q.x,q.z);addCache('lm_col',q.x+3,q.z-3,30);}
+  {/* the Frozen Giant, Frostspine */const p=polar(1650,-1.55),g=lmG(p.x,p.z,1.2),ice=new THREE.MeshLambertMaterial({color:'#bcdcea',emissive:'#16303a'});
+    for(const sd of [-1,1]){mesh(new THREE.BoxGeometry(6,6,16),ice,sd*5.5,3,4,g);mesh(new THREE.BoxGeometry(6,14,6),ice,sd*5.5,7,12,g);}
+    mesh(new THREE.BoxGeometry(18,22,10),ice,0,18,0,g);mesh(new THREE.BoxGeometry(8,9,8),ice,0,33.5,1,g);for(const sd of [-1,1]){const a=mesh(new THREE.BoxGeometry(5,20,5),ice,sd*11.5,16,3,g);a.rotation.x=-.25;}
+    mesh(new THREE.BoxGeometry(5,.6,.4),lm('#bfe9ff',true),0,34,5.1,g,false);
+    CIRC.push({x:p.x,z:p.z,r:12});CLEAR.push({x:p.x,z:p.z,r:46});LMK.push({name:'The Frozen Giant',x:p.x,z:p.z});
+    const q=polar(1650-19,-1.55);addLore('giant',q.x,q.z);addCache('lm_giant',q.x-3,q.z+3,30);}
+  {/* the Drowned Ferry, Sel's river */const a=1.3,p=polar(RIV(a)+24,a),g=lmG(p.x,p.z,a),wd=lm('#3a2a1e');
+    const hull=mesh(new THREE.BoxGeometry(9,6,26),wd,0,1.5,0,g);hull.rotation.z=.35;const bow=mesh(new THREE.ConeGeometry(4.5,8,4),wd,0,1.5,16,g);bow.rotation.set(Math.PI/2,Math.PI/4,0);
+    const mast=mesh(new THREE.CylinderGeometry(.35,.4,20,6),wd,-1.5,11,2,g);mast.rotation.z=.35;const sail=mesh(new THREE.PlaneGeometry(8,9),new THREE.MeshLambertMaterial({color:'#c9b48a',side:THREE.DoubleSide}),-3,13,2.5,g);sail.rotation.set(.1,Math.PI/2,.35);
+    CIRC.push({x:p.x,z:p.z,r:9});CLEAR.push({x:p.x,z:p.z,r:30});LMK.push({name:'The Drowned Ferry',x:p.x,z:p.z});
+    const q=polar(RIV(a)+38,a);addLore('ferry',q.x,q.z);addCache('lm_ferry',q.x+2,q.z+3,24);}
+  {/* the Seventh Cradle, hidden on the rim */const g=lmG(SEC7.x,SEC7.z),bk=lm('#14121a'),vg=lm('#9a6aff',true);
+    for(let k=0;k<7;k++){const a=k/7*6.28;mesh(new THREE.BoxGeometry(1.6,12,1.6),bk,Math.cos(a)*16,6,Math.sin(a)*16,g);mesh(new THREE.OctahedronGeometry(.6),vg,Math.cos(a)*16,12.8,Math.sin(a)*16,g,false);CIRC.push({x:SEC7.x+Math.cos(a)*16,z:SEC7.z+Math.sin(a)*16,r:1.2});}
+    mesh(new THREE.CylinderGeometry(2.4,2.8,1,7),bk,0,.5,0,g);CLEAR.push({x:SEC7.x,z:SEC7.z,r:30});addLore('unlit',SEC7.x+5,SEC7.z+5,()=>F.gdead&&F.gdead[6]);}
+  /* Cinder Mere island: the seventh name */
+  addLore('seventh',LAKES[2].x,LAKES[2].z);
+  /* oddities at mid range */
+  {const rr=mulberry32(9090),R=(a,b)=>a+(b-a)*rr(),kinds=['cairn','husks','shrine','cart','arch','banner'],shrineLore=['hearth','stars','oath','blight','ressa','feast'];let si=0;
+    for(let t=0;t<8000&&ODD.length<36;t++){const a=R(0,6.283),r=R(620,2000),x=Math.cos(a)*r,z=Math.sin(a)*r,h=Hq(x,z);
+      if(h<1||h>90||riverDist(x,z)<14||lakeNear(x,z,10)||VILLAGES.some(v=>Math.hypot(x-v.x,z-v.z)<130)||LMK.some(l=>Math.hypot(x-l.x,z-l.z)<90)||Math.hypot(x-HUT.x,z-HUT.z)<160||
+        LDEF.some(L=>Math.hypot(x-LPOS[L.id].x,z-LPOS[L.id].z)<60)||ODD.some(o=>Math.hypot(o.x-x,o.z-z)<140))continue;
+      const kind=kinds[ODD.length%6],id='odd'+ODD.length,g=lmG(x,z,R(0,6.28));ODD.push({kind,x,z});CLEAR.push({x,z,r:9});
+      if(kind==='cairn'){for(let k=0;k<5;k++)mesh(new THREE.DodecahedronGeometry(1.1-k*.18,0),rockMat,R(-.1,.1),.5+k*.75,R(-.1,.1),g);CIRC.push({x,z,r:1.3});addCache(id,x+2.2,z+.6,Math.round(R(6,14)));}
+      else if(kind==='husks'){for(let k=0;k<5;k++){const a2=k/5*6.28,hx=Math.cos(a2)*3.2,hz=Math.sin(a2)*3.2,hg=new THREE.Group();hg.position.set(hx,0,hz);hg.rotation.y=Math.atan2(-hx,-hz);g.add(hg);
+          mesh(new THREE.BoxGeometry(.6,.8,.5),lm('#7a726a'),0,.75,0,hg);mesh(new THREE.SphereGeometry(.22,6,5),lm('#7a726a'),0,1.35,.08,hg);mesh(new THREE.BoxGeometry(.6,.4,.7),lm('#6a625a'),0,.2,.1,hg);}
+        mesh(new THREE.OctahedronGeometry(.5),lm('#1a1412'),0,.6,0,g);addCache(id,x,z+.1,Math.round(R(8,14)));}
+      else if(kind==='shrine'){for(const[px,pz]of[[-1,-1],[1,-1],[-1,1],[1,1]])mesh(new THREE.BoxGeometry(.2,2.4,.2),woodMat,px*1.1,1.2,pz*1.1,g);const rf=mesh(new THREE.ConeGeometry(2.1,1.2,4),lm('#5a3424'),0,2.9,0,g);rf.rotation.y=Math.PI/4;
+        for(let k=0;k<4;k++)mesh(new THREE.BoxGeometry(.07,.2,.07),lm('#ffd27a',true),R(-.5,.5),.1,R(-.5,.5),g,false);CIRC.push({x,z,r:1.4});
+        const lq=shrineLore[si++];if(lq){const q={x:x+Math.cos(a)*2.6,z:z+Math.sin(a)*2.6};addLore(lq,q.x,q.z);}}
+      else if(kind==='cart'){const bed=mesh(new THREE.BoxGeometry(2,.5,3.4),woodMat,0,.7,0,g);bed.rotation.z=.25;for(const sd of [-1,1]){const w=mesh(new THREE.CylinderGeometry(.6,.6,.15,10),woodMat,sd*1.1,.6,sd*.9,g);w.rotation.z=Math.PI/2;}
+        for(let k=0;k<2;k++)mesh(new THREE.CylinderGeometry(.35,.35,.8,8),lm('#5a4130'),1.8+k*.7,.4,R(-1,1),g);CIRC.push({x,z,r:1.9});addCache(id,x-2,z+1.5,Math.round(R(8,16)));}
+      else if(kind==='arch'){for(const sd of [-1,1])mesh(new THREE.BoxGeometry(1,6,1),stoneMat,sd*2.4,3,0,g);mesh(new THREE.BoxGeometry(6,1,1.2),stoneMat,0,6.4,0,g);
+        CIRC.push({x:x+Math.cos(g.rotation.y)*2.4,z:z-Math.sin(g.rotation.y)*2.4,r:.8});CIRC.push({x:x-Math.cos(g.rotation.y)*2.4,z:z+Math.sin(g.rotation.y)*2.4,r:.8});}
+      else{mesh(new THREE.CylinderGeometry(.08,.1,5,5),woodMat,0,2.5,0,g);const fl=mesh(new THREE.PlaneGeometry(1.4,2.2),new THREE.MeshLambertMaterial({color:'#8e1f27',side:THREE.DoubleSide}),.75,3.7,0,g);fl.rotation.z=-.08;}}}
 
   /* ===== vegetation ===== */
   const clearAt=(x,z,extra)=>CLEAR.some(c=>(c.x-x)**2+(c.z-z)**2<(c.r+(extra||0))**2);
@@ -1843,17 +1940,23 @@ function build(saved){
     base=landNear(base.x,base.z);
     const G={i,def:d,light:L,home:{x:base.x,z:base.z},x:base.x,z:base.z,h:Math.atan2(lp.x-base.x,lp.z-base.z),hp:d.hp,max:d.hp,ghost:d.hp,ghostDelay:0,s:'sleep',t:0,atk:null,poise:d.hp*.35,flash:0,slow:0,cd:1,tellT:0,dead:false,rings:[]};
     G.rig=buildGuardian(d);return G;});
+  LPOS.ost={x:SEC7.x,z:SEC7.z};
+  {const d={name:'The Unlit',hp:4200,dmg:29,speed:4.2,sc:1.7,body:'#0c0a12',trim:'#3a2a5a',glow:'#9a6aff',weapon:'sword',hover:.3,atks:['swing2','starfall','dash','stomp','sweep'],
+      line:'It has no face. Only the shape of someone who used to keep a Light.',death:'"Tell him I waited," it said. Then there was nothing left of it.',secret:true};
+    const L={id:'ost',name:'the Seventh Light',title:'Ost the Forgotten',color:'#9a6aff'};
+    const G={i:6,def:d,light:L,home:{x:SEC7.x,z:SEC7.z},x:SEC7.x,z:SEC7.z,h:0,hp:d.hp,max:d.hp,ghost:d.hp,ghostDelay:0,s:'sleep',t:0,atk:null,poise:d.hp*.35,flash:0,slow:0,cd:1,tellT:0,dead:false,rings:[]};
+    G.rig=buildGuardian(d);GUARDS.push(G);}
   function guardianClear(i){const G=GUARDS[i];return !G||G.dead;}
   function resetGuardian(G){if(G.dead)return;Object.assign(G,{x:G.home.x,z:G.home.z,hp:G.max,ghost:G.max,s:'sleep',t:0,atk:null,poise:G.max*.35,slow:0,cd:1.2,p2:false});G.rings.forEach(r=>r.visible=false);G.rings=[];}
-  function wakeGuardian(G){curG=G;G.s='rise';G.t=0;fightOn=true;setFightUI(true);padTarget=1;$('bossName').textContent=G.def.name;sfx.growl();say([G.def.line]);}
+  function wakeGuardian(G){rec('bw',[G.def.name]);curG=G;G.s='rise';G.t=0;fightOn=true;setFightUI(true);padTarget=1;$('bossName').textContent=G.def.name;sfx.growl();say([G.def.line]);}
   function endGuardianFight(){curG=null;fightOn=false;padTarget=0;setTimeout(()=>{if(!fightOn)setFightUI(false);},1800);}
-  function killGuardian(G){G.s='dead';G.t=0;G.atk=null;G.dead=true;G.rings.forEach(r=>r.visible=false);G.rings=[];G.rig.tell.visible=false;
+  function killGuardian(G){rec('bk',[G.def.name]);if(G.def.final){G.dead=true;G.rings.forEach(r=>r.visible=false);G.rings=[];G.rig.tell.visible=false;hitStop=.4;shakeAdd(1);sfx.felled();finalChoice();return;}G.s='dead';G.t=0;G.atk=null;G.dead=true;G.rings.forEach(r=>r.visible=false);G.rings=[];G.rig.tell.visible=false;
     F.gdead[G.i]=1;PL.max=100+10*Object.keys(F.gdead).length;PL.hp=PL.max;sfx.felled();
-    showBanner(G.def.name+' felled',G.light.name+' is free · +10 vitality','',4.4);hitStop=.35;shakeAdd(.8);say([G.def.death]);endGuardianFight();}
+    showBanner(G.def.name+' felled',G.def.secret?'Its blade answers to you now':G.light.name+' is free · +10 vitality','',4.4);if(G.def.secret)setTimeout(()=>takeSword('unlit'),3200);hitStop=.35;shakeAdd(.8);say([G.def.death]);endGuardianFight();}
   function hitGuardian(){const B=curG;if(!['idle','atk','stagger'].includes(B.s))return;
     const dx=B.x-P.x,dz=B.z-P.z,d=Math.hypot(dx,dz),fx=Math.sin(wren.face),fz=Math.cos(wren.face);
     if(d>4.4+B.def.sc*.9||(dx*fx+dz*fz)/Math.max(d,.01)<.25)return;
-    const base=(SWD[F.equip]||SWORDS[0]).dmg,crit=PL.critT>0||(curTrait()==='star'&&Math.random()<.25),big=swing.step===2||crit,dmg=Math.round(base*(swing.step===2?1.55:1)*(crit?1.8:1)*traitMul());
+    const base=swordDmg(),crit=PL.critT>0||(curTrait()==='star'&&Math.random()<.25),big=swing.step===2||crit,dmg=Math.round(base*(swing.step===2?1.55:1)*(crit?1.8:1)*traitMul());
     if(crit)cue('Critical','#f0b440');
     B.hp=Math.max(0,B.hp-dmg);B.flash=.1;B.ghostDelay=.7;B.poise-=dmg;onHitTrait(B,dmg);
     {const kb=(big?.7:.35)/B.def.sc;B.x+=dx/Math.max(d,.01)*kb;B.z+=dz/Math.max(d,.01)*kb;}
@@ -1870,6 +1973,8 @@ function build(saved){
       G.atk.pts=pts;G.rings=pts.map((pt,k)=>{const r=RINGS[k];r.position.set(pt.x,Hq(pt.x,pt.z)+.15,pt.z);r.scale.setScalar(.1);r.visible=true;r.material.opacity=.0;return r;});}}
   function updateGuardians(dt){
     for(const G of GUARDS){const R=G.rig,d=G.def;
+      if(d.secret&&!F.loreSeven&&!G.dead){R.g.visible=false;continue;}
+      if(d.final&&!(inTower&&towerRoom===7)){R.g.visible=false;continue;}
       const dP=Math.hypot(P.x-G.x,P.z-G.z);
       if(G.dead){if(G.s==='dead'){G.t+=dt;R.g.position.y-=dt*.8;R.torso.rotation.x=Math.min(1.2,G.t*.8);if(G.t>3){G.s='gone';R.g.visible=false;}}continue;}
       R.g.visible=dP<520;if(!R.g.visible)continue;
@@ -1913,7 +2018,7 @@ function build(saved){
   function gHitCheck(G){const A=G.atk,c=A.c,d=G.def,dmg=Math.round(d.dmg*c.m);
     if(c.kind==='melee'){const dx=P.x-G.x,dz=P.z-G.z,dist=Math.hypot(dx,dz),f=(dx*Math.sin(G.h)+dz*Math.cos(G.h))/Math.max(dist,.01);
       if(dist<c.range*d.sc*.85+.6&&f>c.cos)hurtPlayer(dmg,G.x,G.z,c.tell);}
-    else if(c.kind==='aoe'){shakeAdd(.4);sfx.clank(.5);A.pts.forEach(pt=>{heEmit(10,true,pt.x,Hq(pt.x,pt.z)+.5,pt.z);});
+    else if(c.kind==='aoe'){shakeAdd(.4);sfx.clank(.5);A.pts.forEach(pt=>{heEmit(10,true,pt.x,Hq(pt.x,pt.z)+.5,pt.z);if(G.def===GDEF.ama)igniteAt(pt.x,pt.z,true);});
       if(A.pts.some(pt=>Math.hypot(P.x-pt.x,P.z-pt.z)<c.rad))hurtPlayer(dmg,G.x,G.z,c.tell);}}
   /* ===== the valley heals as Lights return ===== */
   const HEALC=new THREE.Color('#5f7d3a'),BLOOMC=new THREE.Color('#7da447'),REST={};
@@ -1991,6 +2096,282 @@ function build(saved){
     let best=null,bd=7.5;for(const n of NPCS){if(!n.rig.g.visible||n.talkT>0)continue;const d=Math.hypot(n.x-P.x,n.z-P.z);if(d<bd){bd=d;best=n;}}
     if(!best){barkCD=1;return;}const L=barkLines(best);if(!L.length){barkCD=3;return;}
     barkN=best;barkT=3.4;barkEl.textContent=pick(L);barkEl.classList.toggle('husk',!!(best.husk&&!best.woke));barkEl.hidden=false;barkCD=rand(10,18);}
+  /* ===== playtest recorder ===== */
+  const REC=(()=>{try{const r=JSON.parse(localStorage.getItem('hollowkeep.rec')||'null');if(r&&r.sessions)return r;}catch(e){}return {v:1,sessions:[]};})();
+  const recS={start:new Date().toISOString(),ev:[]};REC.sessions.push(recS);if(REC.sessions.length>20)REC.sessions.shift();
+  let recT=5,recSaveT=30;
+  function rec(type,extra){recS.ev.push([type,Math.round(elapsed),Math.round(P.x),Math.round(P.z)].concat(extra||[]));if(recS.ev.length>8000)recS.ev.splice(0,1000);}
+  function recSave(){try{localStorage.setItem('hollowkeep.rec',JSON.stringify(REC));}catch(e){}}
+  function recTick(dt){if(state!=='play')return;recT-=dt;if(recT<=0){recT=5;rec('p',[Math.round(PL.hp),inCave?'cave':(typeof inTower!=='undefined'&&inTower?'tower':curArea)]);}recSaveT-=dt;if(recSaveT<=0){recSaveT=30;recSave();}}
+  window.addEventListener('beforeunload',()=>{rec('quit',[state,curG?curG.def.name:'']);recSave();});
+  function recSummary(){const all=REC.sessions.flatMap(x=>x.ev);const deaths={};all.filter(e=>e[0]==='death').forEach(e=>{deaths[e[4]]=(deaths[e[4]]||0)+1;});
+    const fl=all.find(e=>e[0]==='light');const pos=all.filter(e=>e[0]==='p').length;
+    return REC.sessions.length+' sessions · about '+Math.round(pos*5/60)+' min logged · deaths: '+(Object.entries(deaths).map(([k,v])=>k+' x'+v).join(', ')||'none')+(fl?' · first Light at '+Math.round(fl[1]/60)+' min':'');}
+  /* ===== the Ashen: ordinary enemies ===== */
+  const MOBK={hound:{name:'Ash Hound',hp:240,dmg:11,speed:7.2,aggro:26,atks:['bite','bite','pounce'],xp:3,sc:1},
+    knight:{name:'Frostbitten Knight',hp:560,dmg:17,speed:3.3,aggro:22,atks:['slash','slash','overhead'],xp:6,sc:1.05,guard:true},
+    wisp:{name:'Hollow Wisp',hp:160,dmg:13,speed:2.6,aggro:34,atks:['ember'],xp:4,sc:1,hover:1.7},
+    brute:{name:'Ashbound Brute',hp:1500,dmg:24,speed:2.7,aggro:24,atks:['slam','sweep','swing'],xp:22,sc:1.5,elite:true}};
+  const MATK={bite:{w:.5,a:.12,r:.55,tell:'y',kind:'melee',range:2.5,cos:.4,m:1},pounce:{w:.6,a:.35,r:.75,tell:'r',kind:'dash',dist:9,m:1.3},
+    slash:{w:.62,a:.15,r:.6,tell:'y',kind:'melee',range:3.1,cos:.3,m:1},overhead:{w:1.0,a:.2,r:.9,tell:'r',kind:'aoe',at:'front',rad:2.7,m:1.5},
+    ember:{w:1.15,a:.2,r:1.3,tell:'r',kind:'aoe',at:'player',rad:2.5,m:1,fire:true},slam:GATK.slam,sweep:GATK.sweep,swing:GATK.swing};
+  const MOBS=[],MRINGS=[];let mobSlow=0,mobTick=0;
+  for(let k=0;k<14;k++){const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:'#ff3a2a',transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide,fog:false}));m.visible=false;m.renderOrder=4;world.add(m);MRINGS.push(m);}
+  function buildHound(){const g=new THREE.Group(),bm=nmat('#2e2622'),gm=nmat('#ff6a20',true);
+    const body=new THREE.Group();body.position.y=.75;g.add(body);mesh(new THREE.BoxGeometry(.55,.5,1.3),bm,0,0,0,body);
+    for(let k=0;k<3;k++)mesh(new THREE.BoxGeometry(.04,.3,.5),gm,(k-1)*.15,.26,-.1+k*.1,body,false);
+    const head=new THREE.Group();head.position.set(0,.18,.78);body.add(head);mesh(new THREE.BoxGeometry(.38,.36,.5),bm,0,0,.1,head);mesh(new THREE.BoxGeometry(.3,.12,.3),bm,0,-.12,.38,head);
+    for(const sd of [-1,1]){mesh(new THREE.BoxGeometry(.06,.04,.03),gm,sd*.1,.06,.36,head,false);mesh(new THREE.ConeGeometry(.07,.22,4),bm,sd*.13,.25,0,head);}
+    const legs=[];[[-.2,.45],[.2,.45],[-.2,-.45],[.2,-.45]].forEach(([lx,lz])=>{const l=new THREE.Group();l.position.set(lx,-.2,lz);body.add(l);mesh(new THREE.BoxGeometry(.13,.6,.15).translate(0,-.3,0),bm,0,0,0,l);legs.push(l);});
+    const tail=mesh(new THREE.ConeGeometry(.08,.6,4),bm,0,.15,-.85,body);tail.rotation.x=-1.9;
+    const tell=mesh(new THREE.SphereGeometry(.12,6,5),new THREE.MeshBasicMaterial({color:'#ffd84a'}),0,0,.4,head,false);tell.visible=false;
+    world.add(g);return {g,body,head,legs,tell};}
+  function buildKnight(){const g=new THREE.Group(),bm=nmat('#8fa4b4'),dm=nmat('#3a4450'),gm=nmat('#bfe9ff',true);
+    const hip=new THREE.Group();hip.position.y=.95;g.add(hip);
+    const legs=[];for(const sd of [-1,1]){const l=new THREE.Group();l.position.x=sd*.14;hip.add(l);mesh(new THREE.BoxGeometry(.17,.95,.2).translate(0,-.47,0),dm,0,0,0,l);legs.push(l);}
+    const torso=new THREE.Group();hip.add(torso);mesh(new THREE.BoxGeometry(.52,.62,.32).translate(0,.32,0),bm,0,0,0,torso);
+    const head=new THREE.Group();head.position.y=.82;torso.add(head);mesh(new THREE.BoxGeometry(.3,.34,.3),bm,0,0,0,head);mesh(new THREE.BoxGeometry(.24,.04,.02),gm,0,.02,.16,head,false);
+    for(let k=0;k<4;k++){const ic=mesh(new THREE.ConeGeometry(.04,.25,4),gm,-.2+k*.13,.66,-.1,torso,false);ic.rotation.x=-.4;}
+    const arms=[];for(const sd of [-1,1]){const a=new THREE.Group();a.position.set(sd*.34,.56,0);torso.add(a);mesh(new THREE.BoxGeometry(.14,.6,.15).translate(0,-.3,0),bm,0,0,0,a);arms.push(a);}
+    mesh(new THREE.BoxGeometry(.08,.62,.5),dm,-.05,-.4,.12,arms[0]);mesh(new THREE.BoxGeometry(.05,.08,1.15),gm,0,-.6,.5,arms[1],false);
+    const tell=mesh(new THREE.SphereGeometry(.12,6,5),new THREE.MeshBasicMaterial({color:'#ffd84a'}),0,-.6,.25,arms[1],false);tell.visible=false;
+    world.add(g);return {g,hip,legs,torso,head,arms,tell};}
+  function buildWisp(){const g=new THREE.Group(),core=mesh(new THREE.IcosahedronGeometry(.35,0),nmat('#e6d4ff',true),0,0,0,g,false);
+    const shell=mesh(new THREE.IcosahedronGeometry(.6,0),new THREE.MeshBasicMaterial({color:'#9a7ad8',wireframe:true}),0,0,0,g,false);
+    const bits=[];for(let k=0;k<4;k++)bits.push(mesh(new THREE.OctahedronGeometry(.1),nmat('#c9a6ff',true),0,0,0,g,false));
+    const tell=mesh(new THREE.SphereGeometry(.16,6,5),new THREE.MeshBasicMaterial({color:'#ff3a2a'}),0,.75,0,g,false);tell.visible=false;
+    world.add(g);return {g,core,shell,bits,tell,head:core};}
+  /* camps: deterministic so rivals stay where they were made */
+  const CAMPS=[];
+  {const rr=mulberry32(4242),R=(a,b)=>a+(b-a)*rr();const avoid=[...VILLAGES.map(v=>[v.x,v.z,160]),[HUT.x,HUT.z,260],[ARENA.x,ARENA.z,160],[FORGE.x,FORGE.z,80],[BR_C.x,BR_C.z,60],...LDEF.map(L=>[LPOS[L.id].x,LPOS[L.id].z,90]),...SITES.map(st=>[st.x,st.z,30])];
+    for(let t=0;t<9000&&CAMPS.length<74;t++){const a=R(0,6.283),r=R(560,2000),x=Math.cos(a)*r,z=Math.sin(a)*r,h=Hq(x,z);
+      if(h<1||h>120||riverDist(x,z)<20||lakeNear(x,z,15)||avoid.some(([ax,az,ar])=>Math.hypot(x-ax,z-az)<ar)||CAMPS.some(c=>Math.hypot(c.x-x,c.z-z)<150))continue;
+      const B=biomeW(x,z);let plan,night=false;
+      if(B.ash>.55){plan=rr()<.18?['brute','hound']:Array(2+Math.floor(rr()*3)).fill('hound');}
+      else if(B.snow>.55){plan=rr()<.14?['brute','knight']:Array(1+Math.floor(rr()*3)).fill('knight');}
+      else if(rr()<.65){plan=Array(2+Math.floor(rr()*2)).fill('wisp');night=true;}
+      else plan=Array(2+Math.floor(rr()*2)).fill('hound');
+      CAMPS.push({i:CAMPS.length,x,z,plan,night,active:false,mobs:[],deadUntil:0});}}
+  function makeMob(kind,x,z,c,rv){const K=Object.assign({kind},MOBK[kind]);let rig;
+    if(kind==='hound')rig=buildHound();else if(kind==='knight')rig=buildKnight();else if(kind==='wisp')rig=buildWisp();
+    else rig=buildGuardian({body:rv?'#3a2a26':'#4a3a32',trim:'#ff7a2a',glow:'#ff5a10',weapon:'fists',hover:0,sc:K.sc});
+    const lvl=rv?(rv.kills||1):0,hpm=rv?1.6+.3*(lvl-1):1;
+    if(kind!=='brute')rig.g.scale.setScalar((K.sc||1)*(rv?1.22:1));else if(rv)rig.g.scale.multiplyScalar(1.15);
+    if(rv){const hd=rig.head||rig.g;const sc=mesh(new THREE.BoxGeometry(.05,.34,.03),nmat('#ff2a2a',true),.07,.04,.2,hd,false);sc.rotation.z=.6;}
+    const M={K,kind,camp:c,x,z,h:rand(0,6.28),hp:K.hp*hpm,max:K.hp*hpm,ghost:K.hp*hpm,s:'idle',t:0,cd:1,poise:K.hp*hpm*.4,flash:0,tellT:0,rig,home:{x:c?c.x:x,z:c?c.z:z},seed:rand(0,6),dmgM:rv?1.3+.1*(lvl-1):1,rival:rv||null,burn:0,chill:0,slow:0};
+    MOBS.push(M);return M;}
+  function spawnCamp(c){c.active=true;c.mobs=[];const rv=(F.rivals||[]).find(r=>r.camp===c.i);let used=false;
+    c.plan.forEach((k,j)=>{const a=j/c.plan.length*6.28,x=c.x+Math.cos(a)*4,z=c.z+Math.sin(a)*4;const isR=rv&&!used&&rv.kind===k;if(isR)used=true;c.mobs.push(makeMob(k,x,z,c,isR?rv:null));});}
+  function despawnCamp(c){c.active=false;c.mobs.forEach(M=>{if(M.atk)freeRingsM(M);const i=MOBS.indexOf(M);if(i>=0)MOBS.splice(i,1);world.remove(M.rig.g);});c.mobs=[];}
+  function resetCamps(){CAMPS.forEach(c=>{if(c.active)despawnCamp(c);c.deadUntil=0;});}
+  function freeRingsM(M){if(M.atk&&M.atk.rings){M.atk.rings.forEach(r=>{r.visible=false;r.userData.busy=false;});M.atk.rings=null;}}
+  const RIVAL_N={hound:['Grisk','Vharl','Mott','Skarra','Ruk'],knight:['Ser Halden','Ser Ovric','Dame Irsa','Ser Vell'],wisp:['The Pale One','Little Ember','Whisper'],brute:['Gorm','Hulka','Bastok']};
+  const RIVAL_S=['the Ash-Eater','Twice-Burned','Keeper\'s Bane','who Remembers','of the Long Night','the Patient'];
+  function makeRival(M){if(M.rival){M.rival.kills++;F.newRival=M.rival.name;return;}if(!M.camp)return;
+    const rv={name:pick(RIVAL_N[M.kind])+' '+pick(RIVAL_S),kind:M.kind,camp:M.camp.i,kills:1};F.rivals=(F.rivals||[]).concat([rv]);M.rival=rv;F.newRival=rv.name;rec('rival',[rv.name]);}
+  function rivalBark(M){barkN=M;barkT=3.6;barkEl.classList.remove('husk');barkEl.hidden=false;
+    barkEl.textContent=M.rival.name+': '+pick(['You again. I remember how you fell.','I kept your scent, keeper.','This time you stay down.','I told the others about you.']);}
+  function mStartAtk(M,type){const c=MATK[type];M.s='atk';M.t=0;const sp=M.rival?.85:1;
+    M.atk={type,c,ph:'wind',T:0,w:c.w*sp,hit:false,told:false,dx:0,dz:0,rings:null};
+    if(c.kind==='aoe'){const pts=[];if(c.at==='self')pts.push({x:M.x,z:M.z});else if(c.at==='front')pts.push({x:M.x+Math.sin(M.h)*2*M.K.sc,z:M.z+Math.cos(M.h)*2*M.K.sc});else pts.push({x:P.x,z:P.z});
+      M.atk.pts=pts;M.atk.rings=pts.map(pt=>{const r=MRINGS.find(q=>!q.userData.busy)||MRINGS[0];r.userData.busy=true;r.position.set(pt.x,Hq(pt.x,pt.z)+.15,pt.z);r.scale.setScalar(.1);r.visible=true;r.material.opacity=0;return r;});}}
+  function mHitCheck(M){const A=M.atk,c=A.c,dmg=Math.round(M.K.dmg*c.m*M.dmgM);
+    if(c.kind==='melee'){const dx=P.x-M.x,dz=P.z-M.z,d=Math.hypot(dx,dz),f=(dx*Math.sin(M.h)+dz*Math.cos(M.h))/Math.max(d,.01);if(d<c.range*M.K.sc*.9+.5&&f>c.cos)hurtPlayer(dmg,M.x,M.z,c.tell,M);}
+    else if(c.kind==='aoe'){A.pts.forEach(pt=>{heEmit(6,true,pt.x,Hq(pt.x,pt.z)+.5,pt.z);if(c.fire&&typeof igniteAt==='function')igniteAt(pt.x,pt.z);});
+      if(A.pts.some(pt=>Math.hypot(P.x-pt.x,P.z-pt.z)<c.rad))hurtPlayer(dmg,M.x,M.z,c.tell,M);}}
+  function mPose(M,type,ph,u){const R=M.rig,e=ph==='wind'?u*u:ph==='act'?u:1-u;
+    if(M.kind==='brute'){poseG(M,type,ph,u);return;}
+    if(M.kind==='hound'){R.body.rotation.x=ph==='wind'?-.18*e:ph==='act'?.15:0;R.head.position.z=.78+(ph==='act'?.25:0);R.body.position.y=.75-(ph==='wind'?.15*e:0);}
+    else if(M.kind==='knight'){const ra=R.arms[1],la=R.arms[0];if(type==='slash'){ra.rotation.x=ph==='wind'?-2.3*e:ph==='act'?lerp(-2.3,.8,u):lerp(.8,0,u);R.torso.rotation.y=ph==='wind'?.35*e:ph==='act'?lerp(.35,-.4,u):lerp(-.4,0,u);}
+      else{ra.rotation.x=la.rotation.x=ph==='wind'?-2.8*e:ph==='act'?lerp(-2.8,.4,u):lerp(.4,0,u);}}
+    else{R.core.scale.setScalar(ph==='wind'?1+.8*e:ph==='act'?lerp(1.8,.6,u):lerp(.6,1,u));}}
+  function damageMob(M,dmg,big,dot){M.hp=Math.max(0,M.hp-dmg);if(!dot){M.flash=.1;M.ghostDelay=.6;}dmgNum(dmg,M.x,Hq(M.x,M.z)+1.7*M.K.sc+(M.K.hover||0)+Math.random()*.5,M.z,big);mobBarM=M;mobBarT=4;
+    if(M.s==='idle'){M.s='alert';M.t=0;}if(M.hp<=0)killMob(M);}
+  function hitMobs(){let n=0;const fx=Math.sin(wren.face),fz=Math.cos(wren.face);
+    for(const M of MOBS.slice()){if(M.s==='dead')continue;const dx=M.x-P.x,dz=M.z-P.z,d=Math.hypot(dx,dz);if(d>3.7+M.K.sc*.6||(dx*fx+dz*fz)/Math.max(d,.01)<.15)continue;
+      if(n>=3)break;n++;
+      const crit=PL.critT>0||(curTrait()==='star'&&Math.random()<.25),big=swing.step===2||crit;let dmg=Math.round(swordDmg()*(swing.step===2?1.55:1)*(crit?1.8:1)*traitMul());
+      if(M.K.guard&&M.s!=='stagger'&&M.s!=='atk'){const f=(-dx*Math.sin(M.h)-dz*Math.cos(M.h))/Math.max(d,.01);if(f>.3){dmg=Math.round(dmg*.3);M.poise-=dmg*3;cue('Blocked','#9fb4c4');sfx.clank(.6);}}
+      if(crit)cue('Critical','#f0b440');onHitTrait(M,dmg);
+      {const kb=(big?.8:.4)/M.K.sc;M.x+=dx/Math.max(d,.01)*kb;M.z+=dz/Math.max(d,.01)*kb;}
+      M.poise-=dmg;if(M.poise<=0&&M.s!=='stagger'){M.poise=M.max*.4;if(M.atk)freeRingsM(M);M.atk=null;M.s='stagger';M.t=0;}
+      damageMob(M,dmg,big);heEmit(8,true,M.x-dx/Math.max(d,.01)*.6,P.feet+1.1,M.z-dz/Math.max(d,.01)*.6);}
+    if(n){hitStop=Math.max(hitStop,.07);shakeAdd(.3);sfx.hit(false);}return n;}
+  function killMob(M){M.s='dead';M.t=0;if(M.atk)freeRingsM(M);M.atk=null;M.rig.tell.visible=false;
+    const e=M.K.xp+(M.rival?25+10*M.rival.kills:0);F.embers=(F.embers||0)+e;dmgNum('+'+e+' embers',M.x,Hq(M.x,M.z)+2.8,M.z,true);sfx.clank(.4);rec('kill',[M.rival?M.rival.name:M.K.name]);
+    if(M.rival){showBanner('Rival slain',M.rival.name,'sword',3.6);F.rivals=F.rivals.filter(r=>r.name!==M.rival.name);say([pick(['That one will not remember me again.','It knew my face. Now it knows nothing.'])]);}
+    const c=M.camp;if(c&&c.mobs.every(m=>m.s==='dead'))c.deadUntil=elapsed+420;}
+  let mobBarM=null,mobBarT=0;const mobBarEl=document.createElement('div');mobBarEl.className='mobbar';mobBarEl.hidden=true;mobBarEl.innerHTML='<b></b><i><u></u></i>';document.body.appendChild(mobBarEl);const mbv=new THREE.Vector3();
+  function updateMobs(dt){
+    mobTick-=dt;if(mobTick<=0){mobTick=.5;const out=!inCave&&!(typeof inTower!=='undefined'&&inTower);CAMPS.forEach(c=>{const d=Math.hypot(c.x-P.x,c.z-P.z);
+      if(!c.active){if(out&&d<240&&elapsed>=c.deadUntil&&(!c.night||nightF>.45))spawnCamp(c);}
+      else if(!out||d>380||(c.night&&nightF<.25&&!c.mobs.some(m=>m.s==='atk'||m.s==='alert')))despawnCamp(c);});}
+    const ms=mobSlow>0?.3:1;mobSlow=Math.max(0,mobSlow-dt);
+    for(let i=MOBS.length-1;i>=0;i--){const M=MOBS[i];if(M)updateMob(M,dt*ms*(M.chill>0?.72:1),dt);}
+    mobBarT-=dt;let bm=mobBarT>0&&mobBarM&&mobBarM.s!=='dead'?mobBarM:null;
+    if(!bm){let bd=34;for(const M of MOBS){if(M.s==='dead'||!(M.rival||M.K.elite)||M.s==='idle')continue;const d=Math.hypot(M.x-P.x,M.z-P.z);if(d<bd){bd=d;bm=M;}}}
+    if(bm&&state==='play'){mbv.set(bm.x,Hq(bm.x,bm.z)+2.2*bm.K.sc*(bm.rival?1.2:1)+(bm.K.hover||0),bm.z).project(camera);
+      if(mbv.z>1){mobBarEl.hidden=true;}else{mobBarEl.hidden=false;mobBarEl.style.left=((mbv.x+1)/2*innerWidth)+'px';mobBarEl.style.top=((1-mbv.y)/2*innerHeight)+'px';
+        const nm=bm.rival?bm.rival.name:bm.K.elite?bm.K.name:'';const b=mobBarEl.firstChild;b.textContent=nm;b.className=bm.rival?'rv':'';b.hidden=!nm;mobBarEl.querySelector('u').style.width=(bm.hp/bm.max*100)+'%';}}
+    else mobBarEl.hidden=true;}
+  function updateMob(M,gdt,dt){const R=M.rig,K=M.K;
+    if(M.s==='dead'){M.t+=dt;R.g.position.y-=dt*.9;if(M.t>2.2){world.remove(R.g);const i=MOBS.indexOf(M);if(i>=0)MOBS.splice(i,1);}return;}
+    M.t+=gdt;M.flash=Math.max(0,M.flash-dt);M.tellT=Math.max(0,M.tellT-dt);R.tell.visible=M.tellT>0;
+    {const fl=M.flash>0;if(fl!==!!M._fl){M._fl=fl;R.g.traverse(o=>{if(!o.isMesh||o===R.tell)return;if(fl){o.userData.om=o.material;o.material=FLASHM;}else if(o.userData.om){o.material=o.userData.om;}});}}
+    if(M.chill>0)M.chill-=dt;
+    if(M.burn>0){M.burn-=dt;M.bt=(M.bt||0)-dt;if(M.bt<=0){M.bt=.5;damageMob(M,8,false,true);if(M.s==='dead')return;}}
+    const dx=P.x-M.x,dz=P.z-M.z,dP=Math.hypot(dx,dz),toP=Math.atan2(dx,dz);let walk=0;
+    const canSee=state==='play'&&!inCave&&!reading;
+    if(M.s==='idle'){if(!M.wt||M.t>M.wt){M.wt=M.t+rand(2,6);const a=rand(0,6.28),r=rand(0,8);M.tx=M.home.x+Math.cos(a)*r;M.tz=M.home.z+Math.sin(a)*r;}
+      const tdx=M.tx-M.x,tdz=M.tz-M.z;if(Math.hypot(tdx,tdz)>1){M.h=angLerp(M.h,Math.atan2(tdx,tdz),gdt*3);walk=K.speed*.3;}
+      if(canSee&&dP<(M.rival?140:K.aggro)&&!(K.hover&&nightF<.25&&!inTower)){M.s='alert';M.t=0;M.cd=rand(.4,1);if(M.rival&&!M.barked){M.barked=1;rivalBark(M);}}}
+    else if(M.s==='alert'){M.h=angLerp(M.h,toP,gdt*5);M.cd-=gdt;const reach=K.hover?8:2.1*K.sc*(M.rival?1.2:1);
+      if(dP>reach)walk=K.speed*(M.rival?1.15:1);else if(K.hover&&dP<4)walk=-K.speed*.7;
+      if(M.cd<=0&&state==='play'){const opts=K.atks.filter(a=>{const c=MATK[a];if(c.kind==='melee')return dP<c.range*K.sc+.6;if(c.kind==='dash')return dP>3&&dP<c.dist+3;return dP<16;});if(opts.length)mStartAtk(M,pick(opts));}
+      if(Math.hypot(M.x-M.home.x,M.z-M.home.z)>(M.rival?170:60)||dP>(M.rival?180:70)||state!=='play'){M.s='idle';M.hp=M.max;M.t=0;}}
+    else if(M.s==='stagger'){if(M.t>1.0){M.s='alert';M.t=0;M.cd=.3;}}
+    else if(M.s==='atk'){const A=M.atk,c=A.c;A.T+=gdt;
+      if(A.ph==='wind'){if(c.kind!=='dash'||A.T<A.w*.7)M.h=angLerp(M.h,toP,gdt*(c.kind==='dash'?6:3.5));const u=Math.min(1,A.T/A.w);
+        if(!A.told&&A.T>=Math.max(0,A.w-.45)){A.told=true;M.tellT=.5;R.tell.material.color.set(c.tell==='y'?'#ffd84a':'#ff3a2a');if(dP<35)showTell(c.tell,R.tell);}
+        mPose(M,A.type,'wind',u);if(A.rings)A.rings.forEach(r=>{r.scale.setScalar(c.rad*(.3+.7*u));r.material.opacity=.25+.45*u*(.6+.4*Math.sin(clockT*20));});
+        if(A.T>=A.w){A.ph='act';A.T=0;if(c.kind==='dash'){A.dx=Math.sin(M.h);A.dz=Math.cos(M.h);}mHitCheck(M);}}
+      else if(A.ph==='act'){const u=Math.min(1,A.T/c.a);mPose(M,A.type,'act',u);
+        if(c.kind==='dash'){const sp=c.dist/c.a,nx=M.x+A.dx*sp*gdt,nz=M.z+A.dz*sp*gdt;if(K.hover||Hq(nx,nz)>WATER_Y-.2){M.x=nx;M.z=nz;}if(!A.hit&&Math.hypot(P.x-M.x,P.z-M.z)<1.4*K.sc){A.hit=true;hurtPlayer(Math.round(K.dmg*c.m*M.dmgM),M.x,M.z,c.tell,M);}}
+        if(A.T>=c.a){A.ph='rec';A.T=0;freeRingsM(M);}}
+      else{const u=Math.min(1,A.T/c.r);mPose(M,A.type,'rec',u);if(A.T>=c.r){if(c.next&&Math.random()<.5&&dP<5)mStartAtk(M,c.next);else{M.s='alert';M.t=0;M.cd=rand(.6,1.6)*(M.rival?.7:1);M.atk=null;}}}}
+    if(walk){const nx=M.x+Math.sin(M.h)*walk*gdt,nz=M.z+Math.cos(M.h)*walk*gdt;if(K.hover||Hq(nx,nz)>WATER_Y-.2){M.x=nx;M.z=nz;}}
+    const pr=.85*K.sc;if(dP<pr&&dP>.01){P.x=M.x+dx/dP*pr;P.z=M.z+dz/dP*pr;}
+    M.ph=(M.ph||0)+gdt*Math.abs(walk)*(M.kind==='hound'?2.4:1.6);
+    if(M.kind==='hound'){R.legs.forEach((l,k)=>l.rotation.x=Math.sin(M.ph+(k%2?Math.PI:0)+(k>1?Math.PI/2:0))*(walk?.7:0));if(M.s!=='atk'){R.body.rotation.x=0;R.head.position.z=.78;}}
+    else if(M.kind==='knight'||M.kind==='brute'){R.legs.forEach((l,k)=>l.rotation.x=Math.sin(M.ph)*(walk?.6:0)*(k?1:-1));if(M.s!=='atk'&&M.kind==='knight'){R.arms.forEach(a=>a.rotation.x*=.85);R.torso.rotation.y*=.85;}
+      if(M.s!=='atk'&&M.kind==='brute'){R.arms.forEach(a=>{a.rotation.x*=.85;a.rotation.z*=.85;});R.torso.rotation.set(0,R.torso.rotation.y*.85,0);R.hip.position.y=1;}}
+    else{R.bits.forEach((b,k)=>{const a=clockT*2+k*1.57;b.position.set(Math.cos(a)*.75,Math.sin(a*1.3)*.3,Math.sin(a)*.75);});R.shell.rotation.y=clockT;R.shell.rotation.x=clockT*.7;}
+    if(M.s==='stagger'&&M.kind!=='wisp')(R.torso||R.body).rotation.x=-.3*Math.sin(Math.min(1,M.t)*Math.PI);
+    R.g.visible=dP<300;R.g.position.set(M.x,Hq(M.x,M.z)+(K.hover?K.hover+Math.sin(clockT*2+M.seed)*.25:0),M.z);R.g.rotation.y=M.h;}
+  /* forge */
+  const UPCOST=[15,35,70];
+  function swordDmgOf(id){const d=SWD[id]||SWORDS[0];return d.dmg*(1+.12*((F.up||{})[id]||0));}
+  function swordDmg(){return swordDmgOf(F.equip||'dirk');}
+  function drawForge(){F.up=F.up||{};$('forgeEmbers').textContent='Embers '+(F.embers||0);
+    const own=SWORDS.filter(d=>F.swords.includes(d.id));
+    $('forgeList').innerHTML=own.length?own.map(d=>{const lv=F.up[d.id]||0,max=lv>=3,cost=UPCOST[lv];
+      return `<div class="forge-row"><div><div class="fn">${d.name}${lv?' +'+lv:''}</div><div class="fd">${Math.round(swordDmgOf(d.id))} damage${max?'':' → '+Math.round(d.dmg*(1+.12*(lv+1)))}</div></div><span class="fd">${max?'Fully tempered':cost+' embers'}</span><button class="btn" type="button" data-up="${d.id}" ${max||(F.embers||0)<cost?'disabled':''}>Temper</button></div>`;}).join(''):'<p class="inv-sel">You have no blade to temper yet.</p>';}
+  $('forgeList').addEventListener('click',e=>{const b=e.target.closest('[data-up]');if(!b||b.disabled)return;const id=b.dataset.up,lv=(F.up[id]||0);if(lv>=3||(F.embers||0)<UPCOST[lv])return;
+    F.embers-=UPCOST[lv];F.up[id]=lv+1;sfx.clank(.9);sfx.chime([523,659,784],1);rec('temper',[id,lv+1]);drawForge();showToast(SWD[id].name+' tempered to +'+(lv+1));});
+  $('forgeClose').addEventListener('click',()=>closeOvl());
+  {const H=NPCS.find(n=>n.name==='Hask the smith');if(H)H.lines.splice(1,0,["Bring me embers from the Ashen you put down. I will temper your blade at the forge behind me.","The fire remembers how. So do my hands."]);if(H&&H.marks)H.marks.splice(1,0,[]);}
+  const RESTPTS=[...VILLAGES.map(v=>({x:v.x,z:v.z})),{x:CAMP.x,z:CAMP.z},{x:FORGE.x,z:FORGE.z},{x:BR_C.x,z:BR_C.z}];let restCk=0;
+  function updateRestPoint(){if(elapsed-restCk<2||inCave)return;restCk=elapsed;for(const r of RESTPTS)if(Math.hypot(P.x-r.x,P.z-r.z)<45){if(!F.rest||Math.hypot(F.rest.x-P.x,F.rest.z-P.z)>20)F.rest={x:P.x,z:P.z};return;}}
+  /* ===== lore + caches ===== */
+  function readLore(id){const L=LORE.find(q=>q.id===id);if(!L)return;const fresh=!F.lore[id];F.lore[id]=1;rec('lore',[id]);sfx.chime([440,523,659],1.2);
+    read(L.title,L.pages,()=>{if(fresh)showToast('Lore '+Object.keys(F.lore).length+' / '+LORE.length);if(id==='seventh'&&!F.loreSeven){F.loreSeven=true;setTimeout(()=>{showBanner('A name remembered','Something stirs at the edge of the world','area',4);},600);}});}
+  function takeCache(c){if(F.loot[c.id])return;F.loot[c.id]=1;c.lid.visible=false;F.embers=(F.embers||0)+c.n;sfx.clank(.5);sfx.chime([523,659],.8);dmgNum('+'+c.n+' embers',c.x,Hq(c.x,c.z)+1.6,c.z,true);rec('cache',[c.id]);}
+  /* ===== fire, rain and ice ===== */
+  const FCELL=6,FIRES=new Map(),SCORCH=new Map(),FLAM=new Map(),fkey=(i,j)=>i*100003+j;
+  function flammable(i,j){const k=fkey(i,j);let v=FLAM.get(k);if(v===undefined){const x=i*FCELL,z=j*FCELL,h=Hq(x,z),B=biomeW(x,z);v=h>WATER_Y+.4&&h<60&&B.snow<.3&&B.ash<.5&&riverDist(x,z)>10&&!lakeNear(x,z,4)&&Math.hypot(x,z)>480;FLAM.set(k,v);}return v;}
+  function igniteAt(x,z,force){if(RAIN.v>.45&&!force)return false;const i=Math.round(x/FCELL),j=Math.round(z/FCELL),k=fkey(i,j);if(FIRES.has(k)||!flammable(i,j))return false;const sc=SCORCH.get(k);if(sc&&sc>elapsed)return false;
+    if(FIRES.size>=140)FIRES.delete(FIRES.keys().next().value);FIRES.set(k,{i,j,x:i*FCELL,z:j*FCELL,t:0,life:rand(6,9)});return true;}
+  const flameIM=new THREE.InstancedMesh(new THREE.ConeGeometry(.6,1.9,5).translate(0,.95,0),new THREE.MeshBasicMaterial({color:'#ffffff'}),360);flameIM.frustumCulled=false;for(let k=0;k<360;k++)flameIM.setColorAt(k,new THREE.Color('#ff6a20'));flameIM.count=0;world.add(flameIM);
+  const FL1=new THREE.Color('#ff6a20'),FL2=new THREE.Color('#ffc04a'),FIRE_SRC={K:{name:'Fire'}};
+  let fireT=0,fireHurtCD=0,scarDirty=false,scarT=0;
+  function scorchVertex(x,z){if(!TERRAIN_COL)return;const N=TN+1,i=Math.round((x+TS/2)/TSTEP),j=Math.round((z+TS/2)/TSTEP);
+    for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const ii=i+a,jj=j+b;if(ii<0||jj<0||ii>=N||jj>=N)continue;const k=(jj*N+ii)*3,f=(a||b)?.25:.55;TERRAIN_COL[k]*=1-f*.8;TERRAIN_COL[k+1]*=1-f*.85;TERRAIN_COL[k+2]*=1-f*.85;}scarDirty=true;}
+  function burnHusk(n){const i=NPCS.indexOf(n);if(i<0)return;NPCS.splice(i,1);world.remove(n.rig.g);heEmit(20,true,n.x,Hq(n.x,n.z)+1,n.z);const e=10;F.embers=(F.embers||0)+e;dmgNum('+'+e+' embers',n.x,Hq(n.x,n.z)+2,n.z,true);
+    if(!F.burnSay){F.burnSay=1;say(['The husk went up like paper. There were embers inside it, still warm.']);}}
+  function updateFires(dt){
+    fireT-=dt;fireHurtCD-=dt;
+    if(fireT<=0&&FIRES.size){fireT=.25;const add=[],wet=RAIN.v;
+      FIRES.forEach((f,k)=>{f.t+=.25*(1+wet*3);if(f.t>f.life){FIRES.delete(k);SCORCH.set(k,elapsed+180);scorchVertex(f.x,f.z);return;}
+        if(wet<.4&&Math.random()<.13){const di=Math.floor(rand(-1,2)),dj=Math.floor(rand(-1,2));if(di||dj)add.push([f.x+di*FCELL,f.z+dj*FCELL]);}});
+      add.forEach(([x,z])=>igniteAt(x,z));}
+    scarT-=dt;if(scarDirty&&scarT<=0){scarT=1;scarDirty=false;TERRAIN_GEO.attributes.color.needsUpdate=true;}
+    let n=0;FIRES.forEach(f=>{if(n>=358)return;const y=Hq(f.x,f.z),k=Math.min(1,f.t/.6)*(1-sstep(f.life-1.5,f.life,f.t));
+      for(let q=0;q<2;q++){dummy.position.set(f.x+(q?1.4:-1.2),y,f.z+(q?-.8:1));dummy.rotation.set(0,clockT*2+q,0);const fl=.6+.5*Math.abs(Math.sin(clockT*9+f.i*1.7+q));
+        dummy.scale.set(k*(.8+q*.3),k*fl*(1.2-q*.3),k*(.8+q*.3));dummy.updateMatrix();flameIM.setMatrixAt(n,dummy.matrix);tc.copy(FL1).lerp(FL2,q?.7:.2);flameIM.setColorAt(n,tc);n++;}
+      if(fireHurtCD<=0&&state==='play'&&!inCave&&Math.hypot(P.x-f.x,P.z-f.z)<3.4&&P.feet<y+2){fireHurtCD=.7;hurtPlayer(5,f.x,f.z,undefined,FIRE_SRC);}
+      for(const M of MOBS)if(M.s!=='dead'&&Math.abs(M.x-f.x)<4&&Math.abs(M.z-f.z)<4)M.burn=Math.max(M.burn,2);
+      if(curG&&curG.def!==GDEF.ama&&Math.abs(curG.x-f.x)<4.5&&Math.abs(curG.z-f.z)<4.5)curG.burn=Math.max(curG.burn||0,1.5);
+      for(const nn of NPCS.slice())if(nn.husk&&!nn.woke&&Math.abs(nn.x-f.x)<4&&Math.abs(nn.z-f.z)<4)burnHusk(nn);});
+    flameIM.count=n;flameIM.instanceMatrix.needsUpdate=true;if(flameIM.instanceColor)flameIM.instanceColor.needsUpdate=true;}
+  const RAIN={v:0,target:0,t:rand(150,300)},RN=1400,rainPos=new Float32Array(RN*6),rainGeo=new THREE.BufferGeometry();rainGeo.setAttribute('position',new THREE.BufferAttribute(rainPos,3));
+  const rainMat=new THREE.LineBasicMaterial({color:'#a9bccc',transparent:true,opacity:0,depthWrite:false}),rainL=new THREE.LineSegments(rainGeo,rainMat);rainL.frustumCulled=false;rainL.visible=false;scene.add(rainL);
+  const rainD=[];for(let k=0;k<RN;k++)rainD.push({x:rand(-38,38),y:rand(-8,28),z:rand(-38,38),sp:rand(26,34)});
+  function updateRain(dt){RAIN.t-=dt;if(RAIN.t<=0){if(RAIN.target>0){RAIN.target=0;RAIN.t=rand(240,520);}else if(Math.random()<.5){RAIN.target=rand(.6,1);RAIN.t=rand(70,160);if(!F.rainSay&&state==='play'&&!inCave){F.rainSay=1;say(['Rain. Nothing will burn in this.']);}}else RAIN.t=rand(120,260);}
+    const B=weatherB,loc=inCave?0:RAIN.target*(1-Math.max(B.ash,B.snow));RAIN.v+=(loc-RAIN.v)*Math.min(1,dt*.25);
+    if(A.ctx&&A.noise&&A.master&&!A.rainG){const s0=A.ctx.createBufferSource();s0.buffer=A.noise;s0.loop=true;const f0=A.ctx.createBiquadFilter();f0.type='highpass';f0.frequency.value=900;const g0=A.ctx.createGain();g0.gain.value=0;s0.connect(f0);f0.connect(g0);g0.connect(A.master);s0.start();A.rainG=g0;}
+    if(A.rainG)A.rainG.gain.setTargetAtTime(.16*RAIN.v,A.ctx.currentTime,.5);
+    rainL.visible=RAIN.v>.03;if(!rainL.visible)return;rainMat.opacity=.55*RAIN.v;const cp=camera.position;
+    for(let k=0;k<RN;k++){const d=rainD[k];d.y-=d.sp*dt;if(d.y<-8)d.y+=36;const x=cp.x+d.x,y=cp.y+d.y,z=cp.z+d.z,i6=k*6;rainPos[i6]=x;rainPos[i6+1]=y;rainPos[i6+2]=z;rainPos[i6+3]=x+.12;rainPos[i6+4]=y-1;rainPos[i6+5]=z+.06;}
+    rainGeo.attributes.position.needsUpdate=true;}
+  const ICE=[],iceGeo=new THREE.CircleGeometry(2.4,10).rotateX(-Math.PI/2);
+  for(let k=0;k<30;k++){const m=new THREE.Mesh(iceGeo,new THREE.MeshLambertMaterial({color:'#d4f0ff',emissive:'#284858',transparent:true,opacity:.9}));m.visible=false;world.add(m);ICE.push({m,t:99});}
+  let iceT=0;
+  function updateIce(dt){ICE.forEach(q=>{if(q.t<6){q.t+=dt;q.m.material.opacity=.9*(1-sstep(4.5,6,q.t));q.m.visible=q.t<6;}});
+    iceT-=dt;if(iceT>0||state!=='play'||inCave||curTrait()!=='chill')return;
+    if(Hq(P.x,P.z)<WATER_Y-.3&&P.feet>=WATER_Y-.1){iceT=.22;const q=ICE.reduce((a,b)=>a.t>b.t?a:b);q.t=0;q.m.position.set(P.x,WATER_Y+.03,P.z);q.m.rotation.y=rand(0,6);q.m.visible=true;
+      if(!F.iceSay){F.iceSay=1;showToast('Frostfang freezes the water under your feet');}}}
+  /* ===== the tower: six halls and the crown ===== */
+  let inTower=false,towerRoom=0,TROOM=TROOMS[0];const TMOBS=[];
+  const TDEF=[{name:'The Threshold',sub:'Inside the Burning Keep',col:'#ffb347',plan:[],say:['The fire does not burn me. It was never meant for mortals.','Six halls up. Then whatever is at the top.']},
+    {name:'The Hall of Hearth',sub:'Ama',col:'#ff8a3a',plan:['brute','hound','hound'],say:['It smells like bread in here. And smoke. Mostly smoke.']},
+    {name:'The Hall of Rivers',sub:'Sel',col:'#5fd6ff',plan:['knight','knight','knight'],say:['The floor is wet. Sel always left puddles.']},
+    {name:'The Hall of Green',sub:'Ith',col:'#7dff6a',plan:['hound','hound','hound','hound'],say:['Roots through the stone. Ith never asked permission to grow.']},
+    {name:'The Hall of Stone',sub:'Aun',col:'#e0b878',plan:['brute','knight'],say:['Aun built this floor with his hands. I can still see the prints.']},
+    {name:'The Hall of Wind',sub:'Vey',col:'#eaf4ff',plan:['wisp','wisp','wisp','wisp'],say:['Every window is open. Vey hated closed rooms.']},
+    {name:'The Hall of Stars',sub:'Nim',col:'#b896ff',plan:['wisp','wisp','wisp','knight'],say:['Nim painted the ceiling with stars. Six of them. And a scraped-out seventh.']},
+    {name:'The Crown',sub:'The top of the Keep',col:'#c9a6ff',plan:[],say:null}];
+  TROOMS.forEach((R,k)=>{Object.assign(R,TDEF[k]);const g=new THREE.Group();g.position.set(R.x,TR_H,R.z);world.add(g);R.g=g;g.visible=false;
+    const wallM=new THREE.MeshLambertMaterial({color:'#3a3230',side:THREE.BackSide}),floorM=new THREE.MeshLambertMaterial({color:'#4a423c'}),cm=new THREE.MeshBasicMaterial({color:R.col});
+    const fl=new THREE.Mesh(new THREE.CylinderGeometry(R.r+4,R.r+4,.4,40),floorM);fl.position.y=-.1;fl.receiveShadow=true;g.add(fl);
+    const wl=new THREE.Mesh(new THREE.CylinderGeometry(R.r,R.r,26,40,1,true),wallM);wl.position.y=13;g.add(wl);
+    const cl=new THREE.Mesh(new THREE.CircleGeometry(R.r,40).rotateX(Math.PI/2),new THREE.MeshLambertMaterial({color:'#221c1a'}));cl.position.y=26;g.add(cl);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(5,5.6,40).rotateX(-Math.PI/2),cm);ring.position.y=.05;g.add(ring);
+    for(let q=0;q<6;q++){const a=q/6*6.28+.52,bx=Math.cos(a)*(R.r-3),bz=Math.sin(a)*(R.r-3);mesh(new THREE.CylinderGeometry(.5,.7,1.4,6),stoneMat,bx,.7,bz,g);
+      for(let f=0;f<3;f++)mesh(new THREE.ConeGeometry(.28,.9,5),cm,bx+rand(-.2,.2),1.8,bz+rand(-.2,.2),g,false);CIRC.push({x:R.x+bx,z:R.z+bz,r:.8});
+      const ban=mesh(new THREE.PlaneGeometry(2,7),new THREE.MeshLambertMaterial({color:R.col,side:THREE.DoubleSide}),Math.cos(a+.52)*(R.r-.3),11,Math.sin(a+.52)*(R.r-.3),g,false);ban.rotation.y=-(a+.52)+Math.PI/2;}
+    R.ex=R.x-(R.r-4);R.ez=R.z;R.dx=R.x+(R.r-2.5);R.dz=R.z;
+    if(k<7){const d=new THREE.Group();d.position.set(R.r-1.2,0,0);d.rotation.y=-Math.PI/2;g.add(d);for(const sd of [-1,1])mesh(new THREE.BoxGeometry(.8,6,.8),stoneMat,sd*2,3,0,d);mesh(new THREE.BoxGeometry(4.8,.8,.9),stoneMat,0,6.3,0,d);
+      R.portal=mesh(new THREE.PlaneGeometry(3.2,5.6),new THREE.MeshBasicMaterial({color:R.col,transparent:true,opacity:.15,side:THREE.DoubleSide}),0,2.8,0,d,false);}
+    if(k===7){R.nim=new THREE.Group();R.nim.position.set(R.r-4,0,0);g.add(R.nim);mesh(new THREE.BoxGeometry(.5,.9,.4),new THREE.MeshLambertMaterial({color:'#8a8590'}),0,.45,0,R.nim);mesh(new THREE.SphereGeometry(.2,8,6),new THREE.MeshLambertMaterial({color:'#8a8590'}),0,1.05,0,R.nim);
+      mesh(new THREE.OctahedronGeometry(.18),new THREE.MeshBasicMaterial({color:'#e8e0ff'}),0,.75,.32,R.nim,false);}});
+  LPOS.hollow={x:TROOMS[7].x,z:TROOMS[7].z};
+  {const d={name:'The Hollow One',hp:6500,dmg:30,speed:3.8,sc:2.3,body:'#08080c',trim:'#1e1a2a',glow:'#c9a6ff',weapon:'claws',hover:1.0,atks:['sweep','starfall','roots','dash','stomp','swing2'],
+      line:'It wears the shape of a god with no face. Six empty sockets where a family should be.',death:'',final:true};
+    const R7=TROOMS[7],G={i:7,def:d,light:{id:'hollow',name:'the Crown',title:'The Hollow One'},home:{x:R7.x+4,z:R7.z},x:R7.x+4,z:R7.z,h:-Math.PI/2,hp:d.hp,max:d.hp,ghost:d.hp,ghostDelay:0,s:'sleep',t:0,atk:null,poise:d.hp*.35,flash:0,slow:0,cd:1,tellT:0,dead:false,rings:[]};
+    G.rig=buildGuardian(d);GUARDS.push(G);}
+  const HOLLOW=GUARDS[GUARDS.length-1];
+  function despawnTowerMobs(){TMOBS.forEach(M=>{if(M.atk)freeRingsM(M);const i=MOBS.indexOf(M);if(i>=0)MOBS.splice(i,1);world.remove(M.rig.g);});TMOBS.length=0;}
+  function spawnTowerRoom(k){const R=TROOMS[k];R.plan.forEach((kind,j)=>{const a=j/R.plan.length*6.28,M=makeMob(kind,R.x+Math.cos(a)*7,R.z+Math.sin(a)*7,null,null);M.home={x:R.x,z:R.z};M.s='alert';M.cd=1.5+j*.4;TMOBS.push(M);});}
+  function enterTower(k){if(k>7)return;fade(1,.45);sfx.whoosh(.8);
+    setTimeout(()=>{if(curG&&!curG.def.final){resetGuardian(curG);endGuardianFight();}
+      inTower=true;towerRoom=k;TROOM=TROOMS[k];TROOMS.forEach((r,i)=>r.g.visible=i===k);P.x=TROOM.ex;P.z=TROOM.ez;P.feet=Hq(P.x,P.z);P.vy=0;
+      yaw=-Math.PI/2;wren.face=yaw+Math.PI;camDist=4.3;despawnTowerMobs();if(!F.tclear[k])spawnTowerRoom(k);F.troom=Math.max(F.troom||0,k);rec('tower',[k]);
+      if(k===7&&!HOLLOW.dead){resetGuardian(HOLLOW);HOLLOW.dead=false;}
+      fade(0,.9);showBanner(TROOM.name,TROOM.sub,'area',3);if(TROOM.say&&!F['ts'+k]){F['ts'+k]=1;say(TROOM.say);}},520);}
+  function leaveTowerQuiet(){if(!inTower)return;inTower=false;despawnTowerMobs();TROOMS.forEach(r=>r.g.visible=false);if(curG&&curG.def.final){curG=null;fightOn=false;setFightUI(false);}}
+  function leaveTower(){fade(1,.45);setTimeout(()=>{leaveTowerQuiet();P.x=GATE_FRONT.x*1.15;P.z=GATE_FRONT.z*1.15;P.feet=Hq(P.x,P.z);yaw=Math.atan2(P.x,P.z)+Math.PI;fade(0,.9);},520);}
+  let towerCk=0,summoned=false;
+  function updateTower(dt){if(!inTower)return;const R=TROOM;
+    if(R.portal){const open=!!F.tclear[towerRoom]||!R.plan.length;R.portal.material.opacity=open?.35+.15*Math.sin(clockT*3):.08;}
+    if(R.nim)R.nim.rotation.y=Math.atan2(P.x-(R.x+R.r-4),P.z-R.z);
+    towerCk-=dt;if(towerCk<=0){towerCk=.5;if(R.plan.length&&!F.tclear[towerRoom]&&TMOBS.length&&TMOBS.every(M=>M.s==='dead')){F.tclear[towerRoom]=1;sfx.chime([392,494,587],1.4);showToast('The way up is open');}}
+    if(towerRoom===7&&curG===HOLLOW&&!summoned&&HOLLOW.hp<HOLLOW.max*.3){summoned=true;say(['It is calling the ash to it.']);for(let j=0;j<3;j++){const a=j/3*6.28,M=makeMob('wisp',R.x+Math.cos(a)*10,R.z+Math.sin(a)*10,null,null);M.home={x:R.x,z:R.z};M.s='alert';TMOBS.push(M);}}}
+  function finalChoice(){HOLLOW.s='dead';fightOn=false;setFightUI(false);curG=null;despawnTowerMobs();
+    $('chName').hidden=!F.loreSeven;$('choiceText').textContent=F.loreSeven?'It does not raise its claws. It looks at the six Lights in my hands like something it lost. I know its name.':'It does not raise its claws. It looks at the six Lights in my hands like something it lost. Its shape feels familiar, but I have no name for it.';
+    setTimeout(()=>openOvl('choice'),1400);}
+  function runEnding(kind){closeOvl(true);F.ending=kind;rec('ending',[kind]);const woke=NPCS.filter(n=>n.woke).length;ENDING_LINES.length=0;
+    if(kind==='ost')ENDING_LINES.push('"Ost," I say. The Hollow One stops.','It looks at me the way a child looks at a door that has been shut for a very long time.',
+      '"Ost of the Hollow. The seventh child. Ama baked a loaf for you every morning. Nim drew your star and could not bear to scrape it all the way off."',
+      'The ash falls off it like snow. Underneath there is only a boy, tired, and still burning.','I give the six Lights back. Then I give the seventh one its name, and that is enough.',
+      'Seven Lights rise from the tower. The fire turns gold and gentle, the way a hearth is supposed to burn.');
+    else ENDING_LINES.push('I strike. At the very end it does not fight back. It only looks at the Lights.','The Hollow One comes apart like ash, and the fire comes apart with it.',
+      'Nim is waiting at the top, small and grey, holding the last star in both hands. "You remembered us," Nim says.','I give the six Lights back, one by one. Hearth. River. Forest. Stone. Wind. Star.',
+      'The fire goes quiet. For the first time in years, the valley can see the sky.');
+    if(woke)ENDING_LINES.push(woke+(woke===1?' person':' people')+' woke from the ash because of what I carried. They will remember the keeper, even if the gods forget.');
+    if(kind==='ost'&&F.gdead[6])ENDING_LINES.push('Somewhere on the rim, a keeper who waited stops waiting.');
+    ENDING_LINES.push(kind==='ost'?'The family is home. All of them.':(F.loreSeven?'I could have said its name. I will wonder about that for the rest of my life.':'Somewhere past the stars, something that once had a name is gone for good. Maybe some names are worth finding.'));
+    beginEnding();}
+  $('chStrike').addEventListener('click',()=>runEnding('strike'));$('chName').addEventListener('click',()=>runEnding('ost'));
   function talkNPC(n){
     n.talkT=8;n.talked=true;sfx.chime([440,554],.5);
     let pages;
@@ -2261,7 +2642,7 @@ function build(saved){
   let state='title',inCave=false,rideT=0,seqT=0;
   const P={x:0,z:0,feet:0,vy:0};
   let yaw=0,pitch=0,roll=0,onGround=true,bob=0,lastStep=0;
-  const F=Object.assign({swords:[],equip:null,disc:{},known:{},gdead:{},seenL:{},npcMem:{},deaths:0,map:false,sword:false,herald:false,lantern:false,lanternOn:false,crank:false,triedLift:false,sawB:false,village:false,pass:false,near:false,bridge:false,gateOpen:false,won:false},saved.flags||{});
+  const F=Object.assign({tclear:{},loot:{},loreSeven:false,embers:0,up:{},rivals:[],rest:null,lore:{},swords:[],equip:null,disc:{},known:{},gdead:{},seenL:{},npcMem:{},deaths:0,map:false,sword:false,herald:false,lantern:false,lanternOn:false,crank:false,triedLift:false,sawB:false,village:false,pass:false,near:false,bridge:false,gateOpen:false,won:false},saved.flags||{});
   const got=Array.isArray(saved.got)&&saved.got.length===6?saved.got.slice():[false,false,false,false,false,false];
   let elapsed=saved.elapsed||0,dayT=typeof saved.dayT==='number'?saved.dayT:.46,gateT=F.gateOpen?1:0;
   got.forEach((g,i)=>{if(g)lightObjs[i].grp.visible=false;});
@@ -2275,13 +2656,14 @@ function build(saved){
   function setCave(on){inCave=on;cave.visible=on;world.visible=!on;}
   function groundAt(x,z,feet){
     if(inCave)return CAVE_Y;
-    let g=Hq(x,z);
+    let g=Hq(x,z);if(g<WATER_Y-.3&&feet>=WATER_Y-.7&&curTrait()==='chill')g=WATER_Y;
     const b=bridgeLocal(x,z);if(Math.abs(b.s)<BR_L&&Math.abs(b.t)<2){const d=deckY(b.s);if(feet>=d-.9)g=Math.max(g,d);}
     return g;
   }
   function blocked(x,z,feet){
     const R=.4;
     if(inCave){if(!walkable(x,z,R))return true;for(const o of CAVE_OBST)if(x>o[0]-R&&x<o[1]+R&&z>o[2]-R&&z<o[3]+R)return true;return false;}
+    if(inTower){if(Math.hypot(x-TROOM.x,z-TROOM.z)>TROOM.r-1.2)return true;for(const c of CIRC)if((c.x-x)**2+(c.z-z)**2<(c.r+R)**2)return true;return false;}
     if(Math.hypot(x,z)>WORLD_R)return true;
     if(Math.hypot(x,z)<TOWER.r+3)return true;
     if(herald.solid()&&Math.hypot(x-herald.x,z-herald.z)<1.9)return true;
@@ -2344,6 +2726,11 @@ function build(saved){
   SITES.forEach(st=>INTER.push({cave:false,x:st.x,z:st.z,label:()=>'Take '+SWD[st.sw].name,ok:()=>!F.swords.includes(st.sw),use:()=>takeSword(st.sw)}));
   NPCS.filter(n=>n.lines||n.rumor).forEach(n=>INTER.push({cave:false,get x(){return n.x;},get z(){return n.z;},label:()=>'Talk to '+n.name,ok:()=>n.rig.g.visible&&!fightOn,use:()=>talkNPC(n)}));
   NPCS.filter(n=>n.husk).forEach(n=>INTER.push({cave:false,get x(){return n.x;},get z(){return n.z;},label:()=>'Talk to '+n.name,ok:()=>n.woke&&n.rig.g.visible&&!fightOn,use:()=>talkNPC(n)}));
+  LORE_SPOTS.forEach(L=>INTER.push({cave:false,x:L.x,z:L.z,label:()=>F.lore[L.id]?'Read again: '+LORE.find(q=>q.id===L.id).title:'Read the carving',ok:()=>!L.cond||L.cond(),use:()=>readLore(L.id)}));
+  CACHES.forEach(c=>INTER.push({cave:false,x:c.x,z:c.z,label:'Search the cache',ok:()=>!F.loot[c.id],use:()=>takeCache(c)}));
+  TROOMS.forEach((R,k)=>{if(k<7)INTER.push({cave:false,x:R.dx,z:R.dz,label:k===6?'Climb to the Crown':'Climb the stairs',ok:()=>inTower&&towerRoom===k&&(!!F.tclear[k]||!R.plan.length),use:()=>enterTower(k+1)});});
+  INTER.push({cave:false,x:TROOMS[0].ex,z:TROOMS[0].ez,label:'Leave the tower',ok:()=>inTower&&towerRoom===0,use:leaveTower});
+  INTER.push({cave:false,x:FORGE.x-2,z:FORGE.z+1.6,label:'Temper your sword at the forge',ok:()=>F.sword,use:()=>openOvl('forge')});
   INTER.push({cave:false,x:MAPC.x,z:MAPC.z,label:'Take the valley map',ok:()=>!F.map,use:takeMap});
   function nearestInter(){let best=null,bd=2.7;for(const it of INTER){if(it.cave!==inCave||!it.ok())continue;const d=Math.hypot(it.x-P.x,it.z-P.z);if(d<bd){bd=d;best=it;}}return best;}
   function useAction(){
@@ -2361,9 +2748,10 @@ function build(saved){
     if(e.key==='Alt'){e.preventDefault();if(!e.repeat&&state==='play'&&!paused&&!ovl&&!altFree){altFree=true;dragging=false;if(document.pointerLockElement)document.exitPointerLock();updatePause();}return;}
     if(e.repeat)return;
     if(e.code==='Tab')e.preventDefault();
+    if(ovl==='choice')return;
     if(ovl){if(e.code==='Escape'||(ovl==='map'&&e.code==='KeyM')||(ovl==='inv'&&(e.code==='KeyI'||e.code==='Tab'))||(ovl==='cheat'&&(e.code==='F2'||(e.code==='KeyP'&&e.shiftKey)))){e.preventDefault();closeOvl();}return;}
     if(!paused&&state==='play'){
-      if(e.code==='KeyM'){if(F.map)openOvl('map');else showToast('You have no map yet');return;}
+      if(e.code==='KeyM'){if(inTower){showToast('The map is no use in here');return;}if(F.map)openOvl('map');else showToast('You have no map yet');return;}
       if(e.code==='KeyI'||e.code==='Tab'){e.preventDefault();openOvl('inv');return;}
       if(DEV&&(e.code==='F2'||(e.code==='KeyP'&&e.shiftKey))){e.preventDefault();openOvl('cheat');return;}
       if(e.key&&e.key.length===1){devBuf=(devBuf+e.key.toLowerCase()).slice(-9);if(devBuf==='hollowdev'){DEV=!DEV;try{DEV?localStorage.setItem('hollowkeep.dev','1'):localStorage.removeItem('hollowkeep.dev');}catch(err){}showToast(DEV?'Admin unlocked · Shift+P':'Admin locked');}}}
@@ -2400,6 +2788,7 @@ function build(saved){
     for(let k=0;k<14;k++){cx=px-dx*d;cy=pivotY-dy*d;cz=pz-dz*d;
       if(!inCave||(walkable(cx,cz,.2)&&cy<CAVE_Y+CEIL-.35&&cy>CAVE_Y+.25))break;d*=.8;}
     if(!inCave){const g=Math.max(Hq(cx,cz)+.45,WATER_Y+.35);if(cy<g)cy=g;}
+    if(inTower){const ddx=cx-TROOM.x,ddz=cz-TROOM.z,dd=Math.hypot(ddx,ddz),m=TROOM.r-.9;if(dd>m){cx=TROOM.x+ddx/dd*m;cz=TROOM.z+ddz/dd*m;}cy=Math.min(cy,TR_H+24);}
     camEff=d;camera.position.set(cx,cy,cz);camera.rotation.set(pitch,yaw,0);
   }
   let locked=false,lockFailed=false,dragging=false,lastX=0,lastY=0;
@@ -2415,11 +2804,11 @@ function build(saved){
   const CHEAT=Object.assign({god:false,fast:false,map:false},(()=>{try{return JSON.parse(localStorage.getItem('hollowkeep.cheat')||'{}');}catch(e){return {};}})());
   const saveCheat=()=>{try{localStorage.setItem('hollowkeep.cheat',JSON.stringify(CHEAT));}catch(e){}};
   let ovl=null;
-  function openOvl(kind){if(paused||state!=='play')return;paused=true;ovl=kind;for(const k in keys)keys[k]=false;$(({map:'mapUI',cheat:'cheatUI',inv:'invUI'})[kind]).hidden=false;$('pause').hidden=true;
-    if(document.pointerLockElement)document.exitPointerLock();if(kind==='map'){mapView.cx=0;mapView.cz=0;mapView.zoom=0;drawMap();}else if(kind==='inv')drawInv();else syncCheat();}
-  function closeOvl(noLock){if(!ovl)return;$(({map:'mapUI',cheat:'cheatUI',inv:'invUI'})[ovl]).hidden=true;ovl=null;paused=false;if(!noLock)tryLock();updatePause();}
+  function openOvl(kind){if(paused||state!=='play')return;paused=true;ovl=kind;for(const k in keys)keys[k]=false;$(({map:'mapUI',cheat:'cheatUI',inv:'invUI',forge:'forgeUI',choice:'choiceUI'})[kind]).hidden=false;$('pause').hidden=true;
+    if(document.pointerLockElement)document.exitPointerLock();if(kind==='map'){mapView.cx=0;mapView.cz=0;mapView.zoom=0;drawMap();}else if(kind==='inv')drawInv();else if(kind==='forge')drawForge();else syncCheat();}
+  function closeOvl(noLock){if(!ovl)return;$(({map:'mapUI',cheat:'cheatUI',inv:'invUI',forge:'forgeUI',choice:'choiceUI'})[ovl]).hidden=true;ovl=null;paused=false;if(!noLock)tryLock();updatePause();}
   function updateKeysChip(){const k=document.querySelector('.keys');if(k&&F.map&&!k.innerHTML.includes('<b>M</b>'))k.innerHTML=k.innerHTML.replace('<b>I</b> inventory','<b>M</b> map · <b>I</b> inventory');}
-  const MAP_PRINTED=new Set(['The Burning Keep','The Hollow Pass',"Ama's Hearth",'Old Millbrook','Ithwood','The Standing Stones','Star Cradle','Mirror Lake','Stillwater','Cinder Mere','The Old Forge',"Sel's Crossing","Keeper's Mine"]);
+  const MAP_PRINTED=new Set(['The God-Tree','The Fallen Colossus','The Frozen Giant','The Drowned Ferry','The Burning Keep','The Hollow Pass',"Ama's Hearth",'Old Millbrook','Ithwood','The Standing Stones','Star Cradle','Mirror Lake','Stillwater','Cinder Mere','The Old Forge',"Sel's Crossing","Keeper's Mine"]);
   let mapBase=null;const mapView={cx:0,cz:0,zoom:0};
   function buildMapBase(){const N=TN+1,cv=document.createElement('canvas');cv.width=cv.height=N;const cx=cv.getContext('2d'),img=cx.createImageData(N,N),D=img.data;
     const paper=[227,213,180];
@@ -2469,13 +2858,14 @@ function build(saved){
   mapCv.addEventListener('pointerup',e=>{if(!mDrag)return;const was=mDrag;mDrag=null;if(was.moved||!DEV||!(CHEAT.map||CHEAT.tpArmed))return;
     const rc=mapCv.getBoundingClientRect(),dpr=mapCv.width/rc.width,W=mapCv.width,mx=(e.clientX-rc.left)*dpr,my=(e.clientY-rc.top)*dpr;
     const x=mapView.cx+(mx-W/2)/mapView.zoom,z=mapView.cz+(my-W/2)/mapView.zoom;CHEAT.tpArmed=false;closeOvl();tpTo(x,z);});
-  function tpTo(x,z){if(inCave)setCave(false);P.x=x;P.z=z;P.feet=Math.max(Hq(x,z),WATER_Y-1)+.05;P.vy=0;showToast('Teleported · '+areaAt(x,z));}
+  function tpTo(x,z){if(inCave)setCave(false);if(inTower)leaveTowerQuiet();P.x=x;P.z=z;P.feet=Math.max(Hq(x,z),WATER_Y-1)+.05;P.vy=0;showToast('Teleported · '+areaAt(x,z));}
   function tpList(){const L=[['Mine exit',EXIT_P.x,EXIT_P.z],['Tower gate',GATE_FRONT.x,GATE_FRONT.z+0],['Herald arena',RESPAWN.x,RESPAWN.z]];
     AREAS.forEach(A0=>{if(A0.r)L.push([A0.name,A0.x+6,A0.z+6]);});
-    GUARDS.forEach(G=>L.push([G.def.name+' ('+G.light.name+')',G.home.x+(G.home.x>0?-24:24),G.home.z]));
+    GUARDS.forEach(G=>{if(!G.def.final)L.push([G.def.name+' ('+G.light.name+')',G.home.x+(G.home.x>0?-24:24),G.home.z]);});
+    TROOMS.forEach((R,k)=>L.push(['Tower: '+R.name,null,k]));
     NPCS.forEach(n=>{if(n.lines)L.push(['NPC: '+n.name,n.x+2,n.z+2]);});
     SITES.forEach(st=>L.push(['Sword: '+SWD[st.sw].name,st.x+3,st.z+3]));return L;}
-  function syncCheat(){$('chGod').checked=CHEAT.god;$('chFast').checked=CHEAT.fast;$('chMap').checked=CHEAT.map;
+  function syncCheat(){$('recSum').textContent=recSummary();$('chGod').checked=CHEAT.god;$('chFast').checked=CHEAT.fast;$('chMap').checked=CHEAT.map;
     const sel=$('chTp');if(!sel.options.length)tpList().forEach((t,i)=>{const o=document.createElement('option');o.value=i;o.textContent=t[0];sel.appendChild(o);});}
   [['chGod','god'],['chFast','fast'],['chMap','map']].forEach(([id,k])=>$(id).addEventListener('change',e=>{CHEAT[k]=e.target.checked;saveCheat();}));
   $('cheatClose').addEventListener('click',closeOvl);
@@ -2483,18 +2873,21 @@ function build(saved){
     if(c==='swords'){SWORDS.forEach(d=>takeSword(d.id,true));updateSlots();showToast('All swords · '+SWD[F.equip].name);}
     else if(c==='lights'){LDEF.forEach((L,i)=>{if(!got[i]){got[i]=true;lightObjs[i].grp.visible=false;applyRestore(i,false);}});healTerrain();F.gateOpen=true;showToast('All six Lights · the gate is open');}
     else if(c==='map'){F.map=true;CAMP.mapG.children.forEach((ch,i)=>{if(i>0)ch.visible=false;});updateKeysChip();showToast('Map added · press M');}
+    else if(c==='embers'){F.embers=(F.embers||0)+100;showToast('+100 embers');}
+    else if(c==='recdl'){recSave();const b0=new Blob([JSON.stringify(REC,null,1)],{type:'application/json'}),u=URL.createObjectURL(b0),a=document.createElement('a');a.href=u;a.download='hollowkeep-playtest.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);}
+    else if(c==='recclr'){REC.sessions=[recS];recS.ev=[];recSave();$('recSum').textContent=recSummary();showToast('Log cleared');}
     else if(c==='heal'){PL.hp=PL.max;PL.flasks=3;showToast('Healed');}
     else if(c==='disc'){AREAS.forEach(A0=>F.disc[A0.name]=1);LDEF.forEach((L,i)=>F.seenL[i]=1);showToast('All places discovered');}
     else if(c==='day'){dayT=.42;}else if(c==='dusk'){dayT=.56;}else if(c==='night'){dayT=.72;}
     else if(c==='kill'){if(curG)killGuardian(curG);else if(fightOn)killHerald();else showToast('No boss fight right now');}
     else if(c==='herald'){closeOvl();respawnBoss();return;}
     else if(c==='guards'){GUARDS.forEach(G=>{delete F.gdead[G.i];G.dead=false;G.rig.g.visible=true;G.rig.g.position.y=0;G.rig.torso.rotation.set(0,0,0);resetGuardian(G);});if(curG)endGuardianFight();LDEF.forEach((L,i)=>{if(got[i]){}});showToast('Guardians are back');}
-    else if(c==='tp'){const t=tpList()[+$('chTp').value];if(t){closeOvl();tpTo(t[1],t[2]);}return;}
+    else if(c==='tp'){const t=tpList()[+$('chTp').value];if(t){closeOvl();if(t[1]===null)enterTower(t[2]);else tpTo(t[1],t[2]);}return;}
     else if(c==='openmap'){F.map=true;updateKeysChip();CHEAT.tpArmed=true;closeOvl(true);openOvl('map');return;}
     b.blur();}));
   /* ===== inventory ===== */
   const SWORD_HINT={dirk:'A cairn near the mine.',pilgrim:'Pilgrims leave blades in a village well.',bone:'An altar somewhere in the ash.',warden:'A stone warden holds it in the snow.',
-    hearth:'Still in the anvil where it was forged.',frost:'An island in a cold lake.',star:'Where the stars came down.',ash:'Carried by the thing on the pass.'};
+    hearth:'Still in the anvil where it was forged.',unlit:'Kept by the one who still remembers the seventh name.',frost:'An island in a cold lake.',star:'Where the stars came down.',ash:'Carried by the thing on the pass.'};
   let swordThumbs=null;
   function makeThumbs(){const S=160,rt=new THREE.WebGLRenderTarget(S,S),sc=new THREE.Scene();sc.add(new THREE.AmbientLight('#ffffff',.45));
     const dl=new THREE.DirectionalLight('#ffffff',.75);dl.position.set(1,2,3);sc.add(dl);
@@ -2513,12 +2906,12 @@ function build(saved){
     const own=F.swords.length;$('invSwCount').textContent=own+' / '+SWORDS.length;
     $('invSwords').innerHTML=SWORDS.map(d=>{const has=F.swords.includes(d.id),eq=F.equip===d.id;
       return `<button type="button" class="scard${eq?' eq':''}${has?'':' locked'}" data-sw="${d.id}"><span class="lv">Lv ${d.lv}</span>${eq?'<span class="eqb">EQUIPPED</span>':''}
-        <img alt="" src="${swordThumbs[d.id]||''}"><span class="nm">${has?d.name:'Unknown blade'}</span><span class="st">${has?d.dmg+' dmg · '+(d.spd>=1.05?'fast':d.spd<=.86?'heavy':'balanced'):'Not found yet'}</span>${has?`<span class="st tr">${d.tdesc}</span>`:''}</button>`;}).join('');
+        <img alt="" src="${swordThumbs[d.id]||''}"><span class="nm">${has?d.name+((F.up||{})[d.id]?' +'+F.up[d.id]:''):'Unknown blade'}</span><span class="st">${has?Math.round(swordDmgOf(d.id))+' dmg · '+(d.spd>=1.05?'fast':d.spd<=.86?'heavy':'balanced'):'Not found yet'}</span>${has?`<span class="st tr">${d.tdesc}</span>`:''}</button>`;}).join('');
     const cur=SWD[F.equip];$('invSel').textContent=cur?'Equipped: '+cur.name+'. Click another sword to switch.':'You have no sword yet. Click a slot for a hint.';
     $('invLights').innerHTML=LDEF.map((L,i)=>`<div class="inv-light${got[i]?' on':''}" style="color:${got[i]?L.color:''}"><i></i>${L.name.replace("'s Light",'')}</div>`).join('');
-    const gd=Object.keys(F.gdead).length,row=(a,b)=>`<div class="inv-row"><span>${a}</span><span>${b}</span></div>`;
-    $('invItems').innerHTML=row('Flasks',F.sword?PL.flasks+' / 3':'None')+row('Lantern',F.lantern?(F.lanternOn?'Lit':'Out'):'None')+row('Valley map',F.map?'Press M':'Not found')+row('Lights',got.filter(Boolean).length+' / 6');
-    $('invStats').innerHTML=row('Health',Math.round(PL.hp)+' / '+PL.max)+row('Damage',cur?cur.dmg:'-')+row('Guardians felled',gd+' / 6')+row('The Herald',F.herald?'Felled':'Waiting')+row('Places discovered',Object.keys(F.disc).length);}
+    const gd=Object.keys(F.gdead).filter(k=>+k<6).length,row=(a,b)=>`<div class="inv-row"><span>${a}</span><span>${b}</span></div>`;
+    $('invItems').innerHTML=row('Flasks',F.sword?PL.flasks+' / 3':'None')+row('Lantern',F.lantern?(F.lanternOn?'Lit':'Out'):'None')+row('Valley map',F.map?'Press M':'Not found')+row('Lights',got.filter(Boolean).length+' / 6')+row('Embers',F.embers||0)+row('Rivals alive',(F.rivals||[]).length);
+    $('invStats').innerHTML=row('Health',Math.round(PL.hp)+' / '+PL.max)+row('Damage',cur?Math.round(swordDmg()):'-')+row('Guardians felled',gd+' / 6')+row('Lore found',Object.keys(F.lore||{}).length+' / '+LORE.length)+row('The Herald',F.herald?'Felled':'Waiting')+row('Places discovered',Object.keys(F.disc).length);}
   $('invSwords').addEventListener('click',e=>{const b=e.target.closest('[data-sw]');if(!b)return;const id=b.dataset.sw,d=SWD[id];
     if(!F.swords.includes(id)){$('invSel').textContent='Hint: '+SWORD_HINT[id];return;}
     if(F.equip!==id){equipSword(id);if(F.sheathed)setSheathed(true);sfx.clank(.5);updateSlots();}drawInv();$('invSel').textContent='Equipped: '+d.name+' · '+d.dmg+' damage';});
@@ -2640,7 +3033,7 @@ function build(saved){
   }
   function enterPlay(){state='play';showHud(true);seqT=0;wren.face=yaw+Math.PI;}
   function collectLight(i){
-    got[i]=true;lightObjs[i].grp.visible=false;const L=LDEF[i];applyRestore(i,true);
+    got[i]=true;lightObjs[i].grp.visible=false;const L=LDEF[i];applyRestore(i,true);rec('light',[L.id]);
     const n=got.filter(Boolean).length;
     sfx.chime([523,659,784].map(f=>f*(1+i*.06)),1.6);
     showToast(L.name+' · '+n+'/6');
@@ -2650,7 +3043,8 @@ function build(saved){
     state='ending';showHud(false);padTarget=1;fade(1,1.4);seqT=0;
   }
   function finishEnding(){
-    fireOn=false;F.won=true;dayT=.72;state='won';
+    leaveTowerQuiet();fireOn=false;F.won=true;dayT=F.ending==='ost'?.3:.72;state='won';
+    $('win').querySelector('.eyebrow').textContent=F.ending==='ost'?'Seven Lights':'The fire is out';$('win').querySelector('.lede').textContent=F.ending==='ost'?'The family is home. All of them. Thank you for playing.':'Thank you for playing. The valley is yours to wander.';
     P.x=polar(430,PASS_ANG+.04).x;P.z=polar(430,PASS_ANG+.04).z;P.feet=Hq(P.x,P.z);yaw=Math.atan2(P.x,P.z);pitch=.42;roll=0;
     fade(0,2.5);
     setTimeout(()=>{$('winTime').textContent=fmtTime(elapsed);$('win').hidden=false;if(document.exitPointerLock&&locked)document.exitPointerLock();},2600);
@@ -2716,7 +3110,7 @@ function build(saved){
     warden:['The statue held it for the next keeper. That is me now.'],hearth:['Still warm from the forge. Ama would have liked this one.'],frost:['Cold enough to burn. Sel\'s river kept it.'],
     star:['Nim\'s light is in the steel. I can feel the stars turning.'],ash:['Its blade. Still warm with the fire it stole.']};
   function equipSword(id){const def=SWD[id];if(!def)return;F.equip=id;const W=wren;while(W.sword.children.length)W.sword.remove(W.sword.children[0]);buildSwordModel(W.sword,def);}
-  function takeSword(id,quiet){const def=SWD[id];if(!def||F.swords.includes(id))return;
+  function takeSword(id,quiet){const def=SWD[id];if(!def||F.swords.includes(id))return;if(!quiet)rec('sword',[id]);
     const first=!F.sword;F.swords.push(id);F.sword=true;
     SITES.forEach(st=>{if(st.sw===id){st.sg.visible=false;st.beam.visible=false;}});
     const cur=SWD[F.equip];if(!cur||def.dmg>cur.dmg){equipSword(id);if(F.sheathed)setSheathed(true);}
@@ -2762,11 +3156,13 @@ function build(saved){
     if(!swing.hitDone&&swing.t>=swing.D*.42){swing.hitDone=true;playerHit();}
     if(swing&&swing.t>=swing.D){lastSwing=clockT;swing=null;if(atkBuf){atkBuf=false;startSwing();}}}
   function playerHit(){
+    {const t=curTrait();if((t==='burn'||t==='ember'||t==='void')&&swing&&swing.step===2)igniteAt(P.x+Math.sin(wren.face)*2.4,P.z+Math.cos(wren.face)*2.4);}
+    hitMobs();
     if(curG){hitGuardian();return;}
     const B=herald;if(!['idle','atk','stagger'].includes(B.s))return;
     const dx=B.x-P.x,dz=B.z-P.z,d=Math.hypot(dx,dz),fx=Math.sin(wren.face),fz=Math.cos(wren.face);
     if(d>4.7||(dx*fx+dz*fz)/Math.max(d,.01)<.3)return;
-    const base=(SWD[F.equip]||SWORDS[0]).dmg,crit=PL.critT>0||(curTrait()==='star'&&Math.random()<.25),big=swing.step===2||crit,dmg=Math.round(base*(swing.step===2?1.55:1)*(crit?1.8:1)*traitMul());
+    const base=swordDmg(),crit=PL.critT>0||(curTrait()==='star'&&Math.random()<.25),big=swing.step===2||crit,dmg=Math.round(base*(swing.step===2?1.55:1)*(crit?1.8:1)*traitMul());
     if(crit)cue('Critical','#f0b440');
     B.hp=Math.max(0,B.hp-dmg);B.flash=.14;B.ghostDelay=.7;B.poise-=dmg;onHitTrait(B,dmg);
     hitStop=big?.11:.07;shakeAdd(big?.5:.3);sfx.hit(big);
@@ -2785,25 +3181,26 @@ function build(saved){
     if(state!=='play'||!F.sword||PL.flasks<=0||PL.drink>0||swing||PL.dodgeT>0)return;
     if(PL.hp>=PL.max){showToast('Already at full health');return;}
     PL.flasks--;PL.drink=.9;PL._healed=false;}
-  function hurtPlayer(dmg,sx,sz,tell){
-    if(state!=='play')return;
+  let dmgSrc=null;
+  function hurtPlayer(dmg,sx,sz,tell,src){
+    if(state!=='play')return;dmgSrc=src||null;
     if(DEV&&CHEAT.god&&!(tell==='y'&&PL.parryT>0)){if(PL.iframe>0&&PL.dodgeT>0&&PL.pdLock<=0)perfectDodge();return;}
-    if(tell==='y'&&PL.parryT>0){parried();return;}
+    if(tell==='y'&&PL.parryT>0){parried(src);return;}
     if(PL.iframe>0){if(PL.dodgeT>0&&PL.pdLock<=0)perfectDodge();return;}
     PL.hp=Math.max(0,PL.hp-dmg);PL.hurtT=1;PL.iframe=.55;PL.drink=0;swing=null;
     const dx=P.x-sx,dz=P.z-sz,d=Math.hypot(dx,dz)||1;PL.kbx=dx/d*10;PL.kbz=dz/d*10;
     shakeAdd(.7);sfx.hurt();
-    if(PL.hp<=0){F.deaths=(F.deaths||0)+1;F.lastDeath=elapsed;state='down';PL.downT=0;herald.tellT=0;showBanner('Wren has fallen','','dead',3.4);sfx.fall();}}
+    if(PL.hp<=0){F.deaths=(F.deaths||0)+1;F.lastDeath=elapsed;rec('death',[src&&src.K?(src.rival?src.rival.name:src.K.name):curG?curG.def.name:fightOn?'The Hollow Herald':'unknown']);if(src&&src.K)makeRival(src);state='down';PL.downT=0;herald.tellT=0;showBanner('Wren has fallen','','dead',3.4);sfx.fall();}}
   function parry(){
     if(F.sword&&F.sheathed&&state==='play')setSheathed(false);
     if(!F.sword||state!=='play'||reading||PL.parryCD>0||PL.dodgeT>0||PL.drink>0||PL.swim)return;
     swing=null;atkBuf=false;PL.parryT=curTrait()==='quick'?.46:.32;PL.parryCD=.6;PL.parryAnim=.45;PL.parryFace=swingFace();sfx.whoosh(.45);}
-  function parried(){
-    const B=curG||herald;PL.parryT=0;PL.parryCD=0;PL.critT=2.2;
+  function parried(src){
+    const B=src||curG||herald;PL.parryT=0;PL.parryCD=0;PL.critT=2.2;
     hitStop=.14;shakeAdd(.45);sfx.parry();cue('Parry','#ffd84a');
     const hx=P.x+Math.sin(wren.face)*1.1,hz=P.z+Math.cos(wren.face)*1.1;heEmit(30,true,hx,P.feet+1.2,hz);
     B.s='stagger';B.t=-.3;B.atk=null;B.chain=[];B.air=0;B.spin=0;B.poise=550;novaRing.visible=false;B.tellT=0;B.flash=.14;}
-  function perfectDodge(){PL.pdLock=1;(curG||herald).slow=1.3;PL.critT=1.8;cue('Perfect dodge','#9fd2ff');sfx.perfect();}
+  function perfectDodge(){PL.pdLock=1;(curG||herald).slow=1.3;mobSlow=1.3;PL.critT=1.8;cue('Perfect dodge','#9fd2ff');sfx.perfect();}
   const cueEl=$('cue'),tellEl=$('tell'),slowEl=$('slowfx');let cueT=-1,tellT=-1,tellSrc=null;
   function cue(txt,col){cueEl.textContent=txt;cueEl.style.color=col;cueT=0;}
   function showTell(c,src){if(c==='y'&&!F.tipY){F.tipY=1;showToast('Yellow flash: right-click to parry it');}else if(c!=='y'&&!F.tipR){F.tipR=1;showToast('Red flash: press Q to roll through it');}
@@ -2825,15 +3222,16 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
     showToast(inCave?'Herald respawned. It waits on the pass':'Herald respawned. Walk up the path to fight');}
   $('bossBtn').addEventListener('click',e=>{respawnBoss();e.currentTarget.blur();});
   function respawn(){
+    if(inTower){const k=towerRoom;if(curG){resetGuardian(curG);curG=null;fightOn=false;setFightUI(false);}summoned=false;Object.assign(PL,{hp:PL.max,ghost:PL.max,flasks:3,kbx:0,kbz:0,hurtT:0,iframe:1,drink:0,dodgeT:0});state='play';padTarget=0;enterTower(k);say(['Again. I am so close.']);return;}
     if(curG){const G=curG;resetGuardian(G);curG=null;fightOn=false;setFightUI(false);padTarget=0;const a=Math.atan2(G.home.z,G.home.x),p=landNear(G.home.x+Math.cos(a)*34,G.home.z+Math.sin(a)*34);
       P.x=p.x;P.z=p.z;P.feet=Hq(P.x,P.z);yaw=Math.atan2(P.x-G.home.x,P.z-G.home.z);pitch=.05;Object.assign(PL,{hp:PL.max,ghost:PL.max,flasks:3,kbx:0,kbz:0,hurtT:0,iframe:1,drink:0,dodgeT:0});
       fade(0,1.2);state='play';wren.face=yaw+Math.PI;camDist=4.3;say(['Again. It will not keep that Light.']);return;}
-    P.x=RESPAWN.x;P.z=RESPAWN.z;P.feet=Hq(P.x,P.z);yaw=Math.atan2(P.x,P.z);pitch=.05;
+    const herF=fightOn&&!curG,rp=herF?RESPAWN:(F.rest||EXIT_P);P.x=rp.x;P.z=rp.z;P.feet=Hq(P.x,P.z);yaw=herF?Math.atan2(P.x,P.z):yaw;pitch=.05;resetCamps();
     Object.assign(PL,{hp:PL.max,ghost:PL.max,flasks:3,kbx:0,kbz:0,hurtT:0,iframe:1,drink:0,dodgeT:0});
-    herald.reset();fightOn=false;setFightUI(false);fade(0,1.2);state='play';padTarget=0;wren.face=yaw+Math.PI;camDist=4.3;say(['Again. I\'m not done.']);}
-  function wakeHerald(){$('bossName').textContent='The Hollow Herald';const B=herald;B.s='rise';B.t=0;B._roared=false;fightOn=true;setFightUI(true);padTarget=1;
+    herald.reset();fightOn=false;setFightUI(false);fade(0,1.2);state='play';padTarget=0;wren.face=yaw+Math.PI;camDist=4.3;say([F.newRival?F.newRival+'. I will remember that name too.':'Again. I\'m not done.']);if(F.newRival){showBanner(F.newRival,'remembers killing you','dead',3.4);F.newRival=null;}}
+  function wakeHerald(){rec('bw',['The Hollow Herald']);$('bossName').textContent='The Hollow Herald';const B=herald;B.s='rise';B.t=0;B._roared=false;fightOn=true;setFightUI(true);padTarget=1;
     say(['It\'s wearing a halo with six empty sockets.','It has been waiting for their Lights. It won\'t have them.']);}
-  function killHerald(){const B=herald;B.s='dead';B.t=0;B.atk=null;B.chain=[];B.air=0;B.spin=0;clearPillars();novaRing.visible=false;fightOn=false;F.herald=true;
+  function killHerald(){rec('bk',['The Hollow Herald']);const B=herald;B.s='dead';B.t=0;B.atk=null;B.chain=[];B.air=0;B.spin=0;clearPillars();novaRing.visible=false;fightOn=false;F.herald=true;
     sfx.felled();showBanner('Herald felled','The pass is open','',4.6);PL.hp=PL.max;padTarget=0;
     setTimeout(()=>setFightUI(false),2200);
     say(['It came apart like ash. Like everything the Hollow One touches.','The way up is open.']);
@@ -2900,8 +3298,8 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
         if(K.type==='thrust'){const mv=Math.min(26*dt,Math.max(0,d-2));B.x+=Math.sin(B.face)*mv;B.z+=Math.cos(B.face)*mv;}
         if(K.type==='leap'){const u=Math.min(1,K.t/cfg.a);B.x=lerp(K.fx,K.tx,u);B.z=lerp(K.fz,K.tz,u);B.air=Math.sin(Math.PI*u)*7.5;
           tgt=u<.75?POSE.lpA:POSE.slE;rate=u<.75?6:18;B.face=angLerp(B.face,Math.atan2(K.tx-K.fx,K.tz-K.fz),Math.min(1,dt*8));}
-        if(K.type==='spin'){tgt=POSE.spW;B.spin+=dt*15;const mv=Math.min(4.5*dt,Math.max(0,d-1.5));B.x+=dx/Math.max(d,.01)*mv;B.z+=dz/Math.max(d,.01)*mv;
-          K.tick-=dt;if(K.tick<=0){K.tick=.32;sfx.whoosh(.9);if(Math.random()<.5)heEmit(6,true);if(d<6.8&&!airborne)hurtPlayer(cfg.dmg,B.x,B.z,'r');}}
+        if(K.type==='spin'){tgt=POSE.spW;B.spin+=dt*15;const mv=Math.min(3.4*dt,Math.max(0,d-1.5));B.x+=dx/Math.max(d,.01)*mv;B.z+=dz/Math.max(d,.01)*mv;
+          K.tick-=dt;if(K.tick<=0){K.tick=.4;sfx.whoosh(.9);if(Math.random()<.5)heEmit(6,true);if(d<5.4&&!airborne)hurtPlayer(cfg.dmg,B.x,B.z,'r');}}
         if(!K.hit&&K.type!=='spin')K.hit=hAtkHit(K,cfg,d,dx,dz);
         if(K.t>=cfg.a){K.ph='rec';K.t=0;B.air=0;B.spin=0;K.rec=B.chain.length?(B.p2?.12:.22):cfg.r*(B.p2?.8:1);}}
       else{tgt=K.t>K.rec*.45?POSE.rest:POSE[cfg.E];rate=B.chain.length?6:2.4;
@@ -2977,9 +3375,10 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
     {name:'Ithwood',x:LPOS.ith.x,z:LPOS.ith.z,r:130},{name:'The Standing Stones',x:LPOS.aun.x,z:LPOS.aun.z,r:70},{name:'Star Cradle',x:LPOS.nim.x,z:LPOS.nim.z,r:75},
     {name:'Mirror Lake',x:LAKES[0].x,z:LAKES[0].z,r:150},{name:'Stillwater',x:LAKES[1].x,z:LAKES[1].z,r:110},{name:'Cinder Mere',x:LAKES[2].x,z:LAKES[2].z,r:110},
     {name:'The Old Forge',x:FORGE.x,z:FORGE.z,r:60},{name:"Sel's Crossing",x:BR_C.x,z:BR_C.z,r:70},{name:"Keeper's Mine",x:HUT.x,z:HUT.z,r:70},
+    ...LMK.map(l=>({name:l.name,x:l.x,z:l.z,r:110})),{name:'The Seventh Cradle',x:SEC7.x,z:SEC7.z,r:70},
     {name:'The Kneeling Warden',x:SITES[3].x,z:SITES[3].z,r:45},{name:'The Cinder Altar',x:SITES[2].x,z:SITES[2].z,r:45},
     {name:'The Crown Mountains',x:LPOS.vey.x,z:LPOS.vey.z,r:0},{name:"Sel's River",x:LPOS.sel.x,z:LPOS.sel.z,r:0}];
-  function areaAt(x,z){for(const A0 of AREAS)if(Math.hypot(x-A0.x,z-A0.z)<A0.r)return A0.name;
+  function areaAt(x,z){if(inTower)return TROOM.name;for(const A0 of AREAS)if(Math.hypot(x-A0.x,z-A0.z)<A0.r)return A0.name;
     const r=Math.hypot(x,z);if(r<480)return 'The Crown Mountains';if(r>2040)return 'The Rim';
     const B=biomeW(x,z);if(B.ash>.5)return 'Ashfall Wastes';if(B.snow>.5)return 'The Frostspine';if(B.gold>.5)return 'The Golden Reach';
     if(riverDist(x,z)<45)return "Sel's River";return 'The Low Valley';}
@@ -3005,7 +3404,7 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
     if(PL.drink>0){PL.drink=Math.max(0,PL.drink-gdt);if(!PL._healed&&PL.drink<.45){PL._healed=true;PL.hp=Math.min(PL.max,PL.hp+45);sfx.heal();heEmit(10,false,P.x,P.feet+.6,P.z);}}
     PL.parryT=Math.max(0,PL.parryT-gdt);PL.parryCD=Math.max(0,PL.parryCD-gdt);PL.parryAnim=Math.max(0,PL.parryAnim-gdt);PL.critT=Math.max(0,PL.critT-dt);PL.pdLock=Math.max(0,PL.pdLock-dt);
     herald.slow=Math.max(0,(herald.slow||0)-dt);
-    updateSwing(gdt);updateGuardians(gdt);updateHerald((herald.slow>0?gdt*.3:gdt)*(herald.chill>0?.72:1));
+    updateSwing(gdt);updateGuardians(gdt);updateMobs(gdt);updateHerald((herald.slow>0?gdt*.3:gdt)*(herald.chill>0?.72:1));
     {const BB=curG||(fightOn&&['idle','atk','stagger'].includes(herald.s)?herald:null);if(BB){if(BB.chill>0)BB.chill-=dt;
       if(BB.burn>0&&BB.hp>0){BB.burn-=dt;BB.bt=(BB.bt||0)-dt;if(BB.bt<=0){BB.bt=.5;BB.hp=Math.max(0,BB.hp-8);BB.ghostDelay=.4;dmgNum(8,BB.x,Hq(BB.x,BB.z)+2.4,BB.z,false);heEmit(4,true,BB.x,Hq(BB.x,BB.z)+1.5,BB.z);
         if(BB.hp<=0){if(curG)killGuardian(curG);else killHerald();}}}}}updatePillars(herald.slow>0?gdt*.5:gdt);updateCues(dt);updateHE(gdt);updateWaves(gdt);updateNums(dt);
@@ -3017,7 +3416,7 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
       if(PL.downT>3.5&&fadeV>=.99)respawn();}
     applyShake(dt);
     PL.ghost=PL.ghost>PL.hp?Math.max(PL.hp,PL.ghost-dt*28):PL.hp;
-    hpFill.style.width=(PL.hp/PL.max*100)+'%';hpGhost.style.width=(PL.ghost/PL.max*100)+'%';flaskEl.textContent='Flask '+PL.flasks;
+    hpFill.style.width=(PL.hp/PL.max*100)+'%';hpGhost.style.width=(PL.ghost/PL.max*100)+'%';flaskEl.textContent='Flask '+PL.flasks+' · Embers '+(F.embers||0);
     {const BB=curG||herald,BM=curG?curG.max:HERALD_MAX;if(BB.ghostDelay>0)BB.ghostDelay-=dt;else BB.ghost=Math.max(BB.hp,BB.ghost-dt*BM*.45);
     bossFill.style.width=(BB.hp/BM*100)+'%';bossGhost.style.width=(BB.ghost/BM*100)+'%';}
     hurtEl.style.opacity=String(Math.min(.85,PL.hurtT*.9+(F.sword&&PL.hp<30&&state==='play'?.18+.1*Math.sin(clockT*6):0)));}
@@ -3065,7 +3464,7 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
       if(!F.village&&Math.hypot(P.x-VILLAGE_C.x,P.z-VILLAGE_C.z)<40){F.village=true;say(['Ama\'s village. She baked for every house here.','If she hid her Light anywhere, it would be near a hearth.']);}
       if(!F.pass&&Math.hypot(P.x-PATH[1].x,P.z-PATH[1].z)<30){F.pass=true;say(['Aun left this pass open so the people could visit.','From here it\'s all uphill.']);}
       if(!F.near&&!F.gateOpen&&Math.hypot(P.x,P.z)<130){F.near=true;say(['The gate won\'t know me. Not without their Light.']);}
-      if(F.gateOpen&&gateT>=1&&!F.won&&Math.hypot(P.x-GATE_FRONT.x,P.z-GATE_FRONT.z)<8)beginEnding();
+      if(F.gateOpen&&gateT>=1&&!F.won&&!inTower&&Math.hypot(P.x-GATE_FRONT.x,P.z-GATE_FRONT.z)<8)enterTower(0);
     }
   }
 
@@ -3099,7 +3498,7 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
     else if(MODES[mode]==='Print'){printMat.uniforms.uNear.value=camera.near;printMat.uniforms.uFar.value=camera.far;renderer.render(postP,postCam);}
     else renderer.render(post,postCam);}
   let titleA=0,ps1T=0,saveT=8;
-  function saveGame(){if(state!=='play')return;try{localStorage.setItem('hollowkeep.save',JSON.stringify({v:1,x:P.x,z:P.z,feet:P.feet,yaw,pitch,inCave,got,flags:F,elapsed,dayT,hp:PL.hp,flasks:PL.flasks}));}catch(e){}}
+  function saveGame(){if(state!=='play')return;try{const ox=inTower?GATE_FRONT.x*1.15:P.x,oz=inTower?GATE_FRONT.z*1.15:P.z;localStorage.setItem('hollowkeep.save',JSON.stringify({v:1,x:ox,z:oz,feet:inTower?Hq(ox,oz):P.feet,yaw,pitch,inCave,got,flags:F,elapsed,dayT,hp:PL.hp,flasks:PL.flasks}));}catch(e){}}
   window.addEventListener('beforeunload',saveGame);
   function frame(now){
     const rdt=clamp((now-last)/1000,0,.05),realDt=(now-last)/1000;last=now;
@@ -3111,7 +3510,7 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
     cullT-=dt;if(cullT<=0&&!inCave){cullT=.25;const R=VIEWD[SET.view].f+TW*.75,cx=camera.position.x,cz=camera.position.z;vegTiles.forEach(v=>{v.m.visible=(v.cx-cx)*(v.cx-cx)+(v.cz-cz)*(v.cz-cz)<R*R;});}
     const playing=state==='play';
     if(state!=='intro'&&state!=='introOut'&&state!=='title')dayT=(dayT+dt*(keys.KeyT&&playing?28:1)/DAY_LEN)%1;
-    updateDayNight(clockT);
+    updateDayNight(clockT);if(RAIN.v>.01&&!inCave){sun.intensity*=1-.5*RAIN.v;hemi.intensity*=1-.22*RAIN.v;scene.fog.far*=1-.35*RAIN.v;}
     if(Math.random()<dt*.15)gust=rand(.3,.8);gust=Math.max(0,gust-dt*.12);
     const wind=clamp(.55+.3*Math.sin(clockT*.09)+gust,0,1.4);
     windU.uTime.value=clockT;windU.uWind.value=wind;
@@ -3180,7 +3579,7 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
       if(F.gateOpen&&gateT<1)gateT=Math.min(1,gateT+dt/4);
       doors.forEach(d=>{d.g.position.x=d.s*(2.5+gateT*4.6);});
       flames.forEach(f=>{const k=.85+.25*Math.sin(clockT*13+f.ph)*Math.sin(clockT*7.3+f.ph*2);f.f.scale.set(k,1.7*k,k);});
-      updateDeer(dt,playing);updateNPCs(dt);updateCamp();updateRest(dt);updateBarks(dt);updateBirds(dt,clockT,playing);updateHawk(dt,clockT);updateFish(dt,playing);updateFireflies(clockT,cp.x,cp.z);
+      updateDeer(dt,playing);updateNPCs(dt);updateCamp();updateRest(dt);updateBarks(dt);recTick(dt);updateRestPoint();updateFires(dt);updateRain(dt);updateIce(dt);updateTower(dt);updateBirds(dt,clockT,playing);updateHawk(dt,clockT);updateFish(dt,playing);updateFireflies(clockT,cp.x,cp.z);
       sky.position.copy(cp);
       sun.position.set(cp.x+lightDir.x*200,cp.y+Math.max(lightDir.y,.15)*200,cp.z+lightDir.z*200);sun.target.position.set(cp.x,cp.y-20,cp.z);sun.target.updateMatrixWorld();
     }else{
@@ -3207,9 +3606,11 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
   }
 
   if(F.equip)equipSword(F.equip);
+  CACHES.forEach(c=>{if(F.loot[c.id])c.lid.visible=false;});
   got.forEach((g,i)=>{if(g)applyRestore(i,false);});if(got.some(Boolean))healTerrain();
   GUARDS.forEach(G=>{if(F.gdead[G.i]){G.dead=true;G.s='gone';G.rig.g.visible=false;}});PL.max=100+10*Object.keys(F.gdead).length;PL.hp=PL.max;
   if(F.map)CAMP.mapG.children.forEach((c,i)=>{if(i>0)c.visible=false;});
+  rec('session',[navigator.userAgent.slice(0,60)]);
   updateKeysChip();
   applySettings();
   /* restore a live session after a page update */
