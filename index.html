@@ -507,7 +507,7 @@ body.in-fight .dialog{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
         <p class="set-note" style="font-size:11px;opacity:.7;margin:4px 0 0">Music: Tanner Helland, CC BY 4.0 (tannerhelland.com)</p>
       </fieldset>
     </div>
-    <div class="menu-foot"><span>Esc opens this menu. Settings are saved in this browser.</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip btn-chip" id="logBtn" type="button"><span>Playtest log</span><span class="label">Download</span></button><button class="chip btn-chip" id="resetSet" type="button"><span>Reset</span><span class="label">Defaults</span></button></span></div>
+    <div class="menu-foot"><span>Esc opens this menu. Settings are saved in this browser. · <b id="buildTag">Build dev</b></span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip btn-chip" id="logBtn" type="button"><span>Playtest log</span><span class="label">Download</span></button><button class="chip btn-chip" id="resetSet" type="button"><span>Reset</span><span class="label">Defaults</span></button></span></div>
   </div>
 </section>
 <div class="boss" id="bossUI" hidden><div class="boss-name" id="bossName">The Hollow Herald</div><div class="boss-bar"><div class="ghost" id="bossGhost"></div><div class="fill" id="bossFill"></div></div></div>
@@ -791,6 +791,7 @@ function build(saved){
   try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});}
   catch(e){$('glError').hidden=false;$('startBtn').hidden=true;return;}
   const DEF_SET={sens:1,invert:false,hints:true,fov:70,dist:4.3,shake:true,style:'Retro',scale:1,shadows:'high',view:'medium',cell:7,fps:false,vol:.9,mus:.55};
+  const BUILD='v35 · 2026-10-19 17:46';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
   const SET=Object.assign({},DEF_SET);
   try{const j=JSON.parse(localStorage.getItem('hollowkeep.settings')||'null');if(j&&typeof j==='object')Object.assign(SET,j);}catch(e){}
   if(SET.lookV!==3){SET.lookV=3;SET.style='Retro';}
