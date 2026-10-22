@@ -228,7 +228,7 @@ kbd{font-family:var(--font-ui);font-size:11px;padding:3px 7px;border:1px solid v
 @media (max-width:700px){.btyui{top:auto;bottom:150px;width:190px;font-size:11px}}
 .spl.sig{border-color:rgba(255,210,122,.6);color:#ffd27a}
 .next-card{margin:10px 0 0;padding:10px 12px;border:1px solid rgba(255,220,160,.25);background:rgba(255,200,120,.06);font-size:13px;display:grid;gap:3px}.next-card b{color:#f0b440;letter-spacing:.06em;font-size:12px;text-transform:uppercase}.next-card:empty{display:none}
-.travel{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:96px;overflow:auto}.travel button{font:inherit;font-size:12px;padding:5px 9px;background:rgba(255,200,120,.08);border:1px solid rgba(255,200,120,.35);color:#f0dcb8;cursor:pointer}.travel button:hover,.travel button.sel{background:#f0b440;color:#1a120c}
+.travel{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:150px;overflow:auto}.travel button{font:inherit;font-size:12px;padding:5px 9px;background:rgba(255,200,120,.08);border:1px solid rgba(255,200,120,.35);color:#f0dcb8;cursor:pointer}.travel button:hover,.travel button.sel{background:#f0b440;color:#1a120c}
 .padhelp{display:none}.pad .padhelp{display:inline}
 .pass-row{font-size:12px;color:var(--dim);line-height:1.45}
 .pass-row b{color:var(--amber);font-weight:400;margin-right:6px}
@@ -825,7 +825,7 @@ function build(saved){
   try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});}
   catch(e){$('glError').hidden=false;$('startBtn').hidden=true;return;}
   const DEF_SET={sens:1,invert:false,hints:true,fov:70,dist:4.3,shake:true,style:'Retro',scale:1,shadows:'high',view:'medium',cell:7,fps:false,vol:.9,mus:.55};
-  const BUILD='v39 · 2026-10-22 19:03';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
+  const BUILD='v40 · 2026-10-22 20:57';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
   const SET=Object.assign({},DEF_SET);
   try{const j=JSON.parse(localStorage.getItem('hollowkeep.settings')||'null');if(j&&typeof j==='object')Object.assign(SET,j);}catch(e){}
   if(SET.lookV!==3){SET.lookV=3;SET.style='Retro';}
@@ -4054,6 +4054,17 @@ function build(saved){
     add('Mirewatch',MIRE.x+8,MIRE.z-10);add('The Maw Depths',OUT.M.x+Math.cos(MAWL.a)*30,OUT.M.z+Math.sin(MAWL.a)*30);add('Plaza of Aevum',CITY.x+6,CITY.z+36,CITY.y);add('Wyrmcrown Summit',OUT.D.x+Math.cos(OUT.D.a+2.4)*30,OUT.D.z+Math.sin(OUT.D.a+2.4)*30);
     OUT_PASS.slice(0,5).forEach((a,i)=>add(['Skyward Pass','Mire Pass','Wyrm Pass','Cinder Pass','Maw Pass'][i],Math.cos(a)*2620,Math.sin(a)*2620));
     add('The Cinder Road',MPOI.vFlame.x,MPOI.vFlame.z,MPOI.vFlame.y);add("The Wyrm's Stair",MPOI.dFlame.x,MPOI.dFlame.z,MPOI.dFlame.y);{const q=NHP(.5,-30);add("Nhiri's River",q.x,q.z);}
+    /* grace-style flames: at every new great enemy, both ends of Nhiri's river, then wherever the map still had a long empty stretch */
+    GUARDS.filter(G=>G.def.world&&G.i>=16).forEach(G=>{const a=Math.atan2(-G.home.z,-G.home.x);add(G.def.name.replace('The ','')+"'s Vigil",G.home.x+Math.cos(a)*50,G.home.z+Math.sin(a)*50);});
+    {const a=NHP(.07,30),b=NHP(.9,-34);add("Nhiri's Spring",a.x,a.z);add("Nhiri's Ascent",b.x,b.z);}
+    {const SUF=['Rest','Vigil','Hollow','Rise','Ford','Watch','Glade','Cairn','Steps','Crossing','Shelter','Lantern'],used={};
+      const D8=['Southern','South-eastern','Eastern','North-eastern','Northern','North-western','Western','South-western'],dw=(x,z)=>D8[((Math.round(Math.atan2(x,z)/(Math.PI/4))%8)+8)%8];
+      const nameAt=(x,z)=>{const r=Math.hypot(x,z),B=biomeW(x,z);let base;if(r>2380){const rg=regionAt(x,z);base=rg?OUT[rg].name.replace('The ',''):dw(x,z)+' Wilds';}
+        else if(r>1990)base=dw(x,z)+' Rim';else if(B.snow>.5)base='Frostspine';else if(B.ash>.5)base='Ashfall';else if(B.gold>.5)base='Golden Reach';else base=dw(x,z)+' Valley';used[base]=(used[base]||0)+1;const u=used[base]-1;return base+' '+SUF[u%SUF.length]+(u>=SUF.length?' II':'');};
+      const pts=[];for(let x=-3300;x<=3300;x+=55)for(let z=-3300;z<=3300;z+=55){const r=Math.hypot(x,z);if(r<560||r>3120)continue;const h=Hq(x,z);if(h<WATER_Y+.8||h>420)continue;if(r>1990&&r<2560&&h>60)continue;
+        if(Math.abs(Hq(x+5,z)-Hq(x-5,z))+Math.abs(Hq(x,z+5)-Hq(x,z-5))>2.4)continue;if(Math.hypot(x-OUT.V.x,z-OUT.V.z)<150||Math.hypot(x-OUT.M.x,z-OUT.M.z)<90||SINKS.some(q=>Math.hypot(x-q.x,z-q.z)<q.r+20))continue;pts.push({x,z,d:1e9});}
+      const upd=f=>pts.forEach(p=>{const d=Math.hypot(p.x-f.x,p.z-f.z);if(d<p.d)p.d=d;});FLAMES.forEach(upd);
+      for(let n=0;n<24;n++){let best=null;for(const p of pts)if(!best||p.d>best.d)best=p;if(!best||best.d<540)break;add(nameAt(best.x,best.z),best.x,best.z);upd(FLAMES[FLAMES.length-1]);}}
     const fm=new THREE.MeshBasicMaterial({color:'#ffcf4a'}),bm=new THREE.MeshBasicMaterial({color:'#ffcf4a',transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false});
     FLAMES.forEach(f=>{if(f.y==null){const p=landNear(f.x,f.z);f.x=p.x;f.z=p.z;f.y=Hq(f.x,f.z);}const g=new THREE.Group();g.position.set(f.x,f.y,f.z);world.add(g);
       mesh(new THREE.CylinderGeometry(.9,1.2,.9,8),stoneMat,0,.45,0,g);mesh(new THREE.CylinderGeometry(.45,.6,.5,8),stoneMat,0,1.1,0,g);
@@ -4116,7 +4127,16 @@ function build(saved){
     if(!F.tipTravel){F.tipTravel=1;setTimeout(()=>showToast('Lit flames show on your map. Click one on the map to travel there.'),3000);}}
   function travelTo(f){if(fightOn){showToast('You cannot travel during a fight');return;}closeOvl(true);fade(1,.4);setTimeout(()=>{if(inTower){if(TROOM.cave){TROOM.g.visible=false;sky.visible=true;}leaveTowerQuiet();}if(inCave)setCave(false);PL.lift=null;
       P.x=f.x+1.8;P.z=f.z+1.8;P.feet=f.y;P.vy=0;F.rest={x:P.x,z:P.z,y:f.y};resetCamps();fade(0,.9);showBanner(f.name,"Keeper's Flame",'area',2.4);tryLock();},450);}
-  let flCk=0;function updateFlames(dt){FLAMES.forEach(f=>{const on=F.flames&&F.flames[f.id];f.fl.forEach((c,k)=>{c.scale.y=on?.9+.35*Math.abs(Math.sin(clockT*7+k*2)):.35;});f.beam.visible=!on;});
+  const GRACE=(()=>{const mat=new THREE.ShaderMaterial({uniforms:{uT:NHU.uT},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false,
+      vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader:'uniform float uT;varying vec2 vUv;void main(){float e=1.0-abs(vUv.x*2.0-1.0);float s=.65+.35*sin(vUv.y*18.0-uT*5.0);float a=pow(e,2.0)*pow(1.0-vUv.y,1.4)*s*.75;gl_FragColor=vec4(1.0,.84,.45,a);}'});
+    const g=new THREE.Group();g.visible=false;world.add(g);
+    for(let k=0;k<3;k++){const r=new THREE.Group();r.rotation.set(-.08-k*.05,(k-1)*.07,0);g.add(r);for(const rz of [0,Math.PI/2]){const m=new THREE.Mesh(new THREE.PlaneGeometry(.38,30).translate(0,15,0).rotateX(Math.PI/2),mat);m.rotation.z=rz;r.add(m);}}
+    return {g,f:null};})();
+  function updateGrace(){const G=GRACE.g;let near=null,bd=26;if(state==='play'&&!inTower&&!inCave&&SET.guide!==false&&!fightOn){for(const f of FLAMES){if(!(F.flames&&F.flames[f.id]))continue;const d=Math.hypot(P.x-f.x,P.z-f.z);if(d<bd){bd=d;near=f;}}}
+    if(!near){G.visible=false;return;}const o=objective();if(!o.main||Math.hypot(o.x-near.x,o.z-near.z)<30){G.visible=false;return;}
+    G.visible=true;G.position.set(near.x,near.y+1.5,near.z);G.rotation.y=Math.atan2(o.x-near.x,o.z-near.z);}
+  let flCk=0;function updateFlames(dt){updateGrace();FLAMES.forEach(f=>{const on=F.flames&&F.flames[f.id];f.fl.forEach((c,k)=>{c.scale.y=on?.9+.35*Math.abs(Math.sin(clockT*7+k*2)):.35;});f.beam.visible=!on;});
     flCk-=dt;if(flCk>0||state!=='play'||inTower)return;flCk=.5;for(const f of FLAMES){if(F.flames&&F.flames[f.id])continue;if(Math.hypot(P.x-f.x,P.z-f.z)<9&&Math.abs(P.feet-f.y)<4){restAtFlame(f);break;}}}
   function drawJournal(){const row=(done,t,v)=>`<div class="jrow${done?' done':''}"><i>${done?'◆':'◇'}</i><span>${t}</span>${v!=null?`<b>${v}</b>`:''}</div>`,ng=got.filter(Boolean).length;
     const main=[[!!F.map,"Find Bren's map at the mine camp"],[ng>=6,'Bring home the six Lights',ng+' / 6'],[!!F.herald,'Defeat the Hollow Herald on the pass'],[!!F.gateOpen&&ng>=6,'Open the gate of the Burning Keep'],[!!F.won,'Climb the Keep and face what waits at the top']];
@@ -4379,7 +4399,7 @@ function build(saved){
     INTER.push({cave:false,get x(){return C.ch[0].x;},get z(){return C.ch[0].z;},label:C.kind==='well'?'Climb back up':'Leave the cave',ok:()=>inTower&&TROOM===C,use:()=>leaveCave()});});
   INTER.push({cave:false,get x(){return HORSE.x;},get z(){return HORSE.z;},label:()=>F.horse?'Ride Brin':'Ride the horse',ok:()=>!PL.horse&&!inTower&&!fightOn&&Math.abs(P.feet-HORSE.feet)<2.5,use:horseOn});
   newInter().forEach(it=>INTER.push(it));
-  FLAMES.forEach(f=>INTER.push({cave:false,x:f.x,z:f.z,label:"Rest at the Keeper's Flame",ok:()=>!inTower&&!fightOn&&Math.abs(P.feet-f.y)<3,use:()=>restAtFlame(f)}));
+  FLAMES.forEach(f=>INTER.push({cave:false,x:f.x,z:f.z,label:()=>F.flames&&F.flames[f.id]?'Rest · travel':"Rest at the Keeper's Flame",ok:()=>!inTower&&!fightOn&&Math.abs(P.feet-f.y)<3,use:()=>{const lit=F.flames&&F.flames[f.id];restAtFlame(f);if(lit)setTimeout(()=>{if(state==='play'&&!fightOn&&!ovl&&!paused)openOvl('map');},900);}}));
   CHESTS.forEach(c=>INTER.push({cave:false,x:c.x,z:c.z,label:c.glint?'Pick up':'Open the chest',ok:()=>(c.cave!=null?inTower&&TROOM===CAVES[c.cave]:!inTower)&&!(F.chest||{})[c.id]&&(c.y==null||Math.abs(P.feet-c.y)<2.6),use:()=>openChest(c)}));
   NPCS.filter(n=>n.lines||n.rumor).forEach(n=>INTER.push({cave:false,get x(){return n.x;},get z(){return n.z;},label:()=>'Talk to '+n.name,ok:()=>n.rig.g.visible&&!fightOn,use:()=>talkNPC(n)}));
   NPCS.filter(n=>n.husk).forEach(n=>INTER.push({cave:false,get x(){return n.x;},get z(){return n.z;},label:()=>'Talk to '+n.name,ok:()=>n.woke&&n.rig.g.visible&&!fightOn,use:()=>talkNPC(n)}));
