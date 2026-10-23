@@ -156,7 +156,7 @@ kbd{font-family:var(--font-ui);font-size:11px;padding:3px 7px;border:1px solid v
 .banner.area h2{font-size:clamp(30px,5.4vw,66px);color:var(--ink);letter-spacing:.05em}
 .banner.area p{color:var(--amber)}
 .banner.sword h2{font-size:clamp(28px,5vw,60px);color:var(--amber)}
-.map-ui{position:fixed;inset:0;z-index:55;display:grid;place-items:center;background:rgba(8,10,9,.78)}
+.map-ui{position:fixed;inset:0;z-index:55;display:flex;align-items:center;justify-content:center;gap:16px;background:rgba(8,10,9,.78)}.map-side{width:280px;height:min(80vh,820px);display:flex;flex-direction:column;gap:8px;background:rgba(18,15,12,.94);border:1px solid var(--line);padding:12px;box-shadow:0 20px 60px rgba(0,0,0,.6)}.map-side-head{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}.map-side input{font:inherit;font-size:14px;padding:8px 10px;background:#15110d;border:1px solid rgba(255,200,120,.4);color:#f0dcb8;outline:none}.map-side input:focus{border-color:rgba(255,200,120,.85)}.map-list{overflow:auto;flex:1;min-height:0}.map-list h4{margin:10px 0 4px;font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}.map-list button{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;padding:5px 6px;background:none;border:0;color:#f0dcb8;cursor:pointer}.map-list button:hover,.map-list button.sel{background:rgba(255,200,120,.14)}.map-list small{display:block;color:var(--dim);font-size:11px;margin-top:1px}.map-list .none{color:var(--dim);font-size:12px;padding:6px}@media (max-width:1000px){.map-side{position:absolute;right:8px;top:8px;width:230px;height:auto;max-height:70vh}}
 .map-frame{position:relative;display:grid;gap:8px;justify-items:center}
 .map-frame canvas{display:block;border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.6);cursor:grab;background:#e3d5b4}
 .map-frame canvas:active{cursor:grabbing}
@@ -390,7 +390,7 @@ body.in-fight .dialog{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 </section>
 <div class="chip pause" id="pause" hidden>Click the view to look around</div>
 <div class="chip fps" id="fps" hidden>-- fps</div>
-<section class="map-ui" id="mapUI" hidden><div class="map-frame"><div class="map-head">The Valley of the Keep</div><canvas id="mapCv" width="800" height="800"></canvas><div class="map-foot" id="mapFoot">M or Esc close · Wheel zoom · Drag to pan · Click a lit flame to travel</div><div class="travel" id="travelList"></div></div></section>
+<section class="map-ui" id="mapUI" hidden><div class="map-frame"><div class="map-head">The Valley of the Keep</div><canvas id="mapCv" width="800" height="800"></canvas><div class="map-foot" id="mapFoot">M or Esc close · Wheel zoom · Drag to pan · Click a lit flame to travel</div><div class="travel" id="travelList"></div></div><aside class="map-side" id="mapSide" hidden><div class="map-side-head">Admin · Find &amp; teleport</div><input id="mapFind" type="search" autocomplete="off" spellcheck="false" placeholder="Type a name: statue, Ama, Wyrm…"><div class="map-list" id="mapList"></div></aside></section>
 <section class="menu cls" id="classUI" hidden>
   <div class="menu-panel" role="dialog" aria-labelledby="clsTitle">
     <div class="menu-head"><h2 id="clsTitle">Who keeps the promise?</h2></div>
@@ -825,7 +825,7 @@ function build(saved){
   try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});}
   catch(e){$('glError').hidden=false;$('startBtn').hidden=true;return;}
   const DEF_SET={sens:1,invert:false,hints:true,fov:70,dist:4.3,shake:true,style:'Retro',scale:1,shadows:'high',view:'medium',cell:7,fps:false,vol:.9,mus:.55};
-  const BUILD='v44 · 2026-10-23 11:55';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
+  const BUILD='v45 · 2026-10-23 12:08';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
   const SET=Object.assign({},DEF_SET);
   try{const j=JSON.parse(localStorage.getItem('hollowkeep.settings')||'null');if(j&&typeof j==='object')Object.assign(SET,j);}catch(e){}
   if(SET.lookV!==3){SET.lookV=3;SET.style='Retro';}
@@ -4433,6 +4433,7 @@ function build(saved){
   /* ===== input ===== */
   const keys={};let jumpQueued=false;
   window.addEventListener('keydown',e=>{
+    if(e.target&&e.target.id==='mapFind'){if(e.code==='Escape'){e.target.value='';e.target.blur();mapSideRender();e.preventDefault();}else if(e.code==='Enter'){const b=document.querySelector('#mapList button');if(b)b.click();e.preventDefault();}return;}
     keys[e.code]=true;
     if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)&&state!=='title')e.preventDefault();
     if(e.key==='Alt'){e.preventDefault();if(!e.repeat&&state==='play'&&!paused&&!ovl&&!altFree){altFree=true;dragging=false;if(document.pointerLockElement)document.exitPointerLock();updatePause();}return;}
@@ -4508,7 +4509,7 @@ function build(saved){
   const CHEAT=Object.assign({god:false,fast:false,map:false},(()=>{try{return JSON.parse(localStorage.getItem('hollowkeep.cheat')||'{}');}catch(e){return {};}})());
   const saveCheat=()=>{try{localStorage.setItem('hollowkeep.cheat',JSON.stringify(CHEAT));}catch(e){}};
   let ovl=null;
-  function openOvl(kind){if(paused||state!=='play')return;window._ovlT=performance.now();rec('ui',[kind]);paused=true;ovl=kind;for(const k in keys)keys[k]=false;$(({map:'mapUI',cheat:'cheatUI',inv:'invUI',forge:'forgeUI',choice:'choiceUI',skills:'skillUI',shop:'shopUI',journal:'jourUI',guide:'guideUI'})[kind]).hidden=false;$('pause').hidden=true;
+  function openOvl(kind){if(paused||state!=='play')return;window._ovlT=performance.now();rec('ui',[kind]);paused=true;ovl=kind;for(const k in keys)keys[k]=false;$(({map:'mapUI',cheat:'cheatUI',inv:'invUI',forge:'forgeUI',choice:'choiceUI',skills:'skillUI',shop:'shopUI',journal:'jourUI',guide:'guideUI'})[kind]).hidden=false;$('pause').hidden=true;if(kind==='map')mapSideOpen();
     if(document.pointerLockElement)document.exitPointerLock();if(kind==='map'){travelSel=0;setTimeout(drawTravel,0);mapView.cx=0;mapView.cz=0;mapView.zoom=0;drawMap();}else if(kind==='inv')drawInv();else if(kind==='forge')drawForge();else if(kind==='skills')drawSkills();else if(kind==='shop')drawShop();else if(kind==='journal')drawJournal();else syncCheat();}
   function closeOvl(noLock){if(!ovl)return;$(({map:'mapUI',cheat:'cheatUI',inv:'invUI',forge:'forgeUI',choice:'choiceUI',skills:'skillUI',shop:'shopUI',journal:'jourUI',guide:'guideUI'})[ovl]).hidden=true;ovl=null;paused=false;if(!noLock)tryLock();updatePause();}
   function updateKeysChip(){const k=document.querySelector('.keys');if(k&&F.map&&!k.innerHTML.includes('<b>M</b>'))k.innerHTML=k.innerHTML.replace('<b>I</b> inventory','<b>M</b> map · <b>I</b> inventory');}
@@ -4568,6 +4569,7 @@ function build(saved){
     if(all)SITES.forEach(st=>{if(hasTier(st.sw))return;dot(st.x,st.z,'#cfe7ff',fs*.3,'diamond');label(SWD[st.sw].name,st.x,st.z,'#2c4a52',fs*.72,fs*1.2);});
     mapExtras(dot,label,all);
     flushLabels();
+    if(mapView.hl){const p=w2m(mapView.hl.x,mapView.hl.z,W);c.strokeStyle='#b8502a';c.lineWidth=3;c.beginPath();c.arc(p[0],p[1],fs*1.3,0,6.283);c.stroke();c.lineWidth=1.5;c.beginPath();c.arc(p[0],p[1],fs*2.1,0,6.283);c.stroke();}
     /* player */
     const pp=w2m(P.x,P.z,W),fx=-Math.sin(yaw),fz=-Math.cos(yaw),r=fs*.8;
     c.fillStyle='#b8502a';c.strokeStyle='#1d1a17';c.lineWidth=2;c.beginPath();c.moveTo(pp[0]+fx*r*1.3,pp[1]+fz*r*1.3);c.lineTo(pp[0]-fx*r*.7+fz*r*.7,pp[1]-fz*r*.7-fx*r*.7);c.lineTo(pp[0]-fx*r*.3,pp[1]-fz*r*.3);c.lineTo(pp[0]-fx*r*.7-fz*r*.7,pp[1]-fz*r*.7+fx*r*.7);c.closePath();c.fill();c.stroke();
@@ -4593,6 +4595,41 @@ function build(saved){
     for(let r=.8;r<=70;r+=.8)for(let k=0;k<20;k++){const a=k/20*6.2832+r*.41,qx=x+Math.cos(a)*r,qz=z+Math.sin(a)*r;if(Math.hypot(qx,qz)<WORLD_R-6&&ok(qx,qz))return{x:qx,z:qz};}
     return{x,z};}
   function tpTo(x,z){if(inCave)setCave(false);if(inTower){if(TROOM.cave){TROOM.g.visible=false;sky.visible=true;}leaveTowerQuiet();}PL.lift=null;{const q=freeSpot(x,z,null);x=q.x;z=q.z;}P.x=x;P.z=z;P.feet=Math.max(groundAt(x,z,Hq(x,z)+.05),WATER_Y-1)+.05;P.vy=0;PL.camY=null;showToast('Teleported · '+areaAt(x,z));}
+
+  /* ===== admin: searchable list of everything next to the map, click to teleport ===== */
+  const MS={items:null};
+  function mapSideItems(){const L=[],N=['east','south-east','south','south-west','west','north-west','north','north-east'];
+    const dirOf=(dx,dz)=>N[((Math.round(Math.atan2(dz,dx)/(Math.PI/4))%8)+8)%8];
+    const near=(x,z)=>{let b=null,bd=1e12;for(const f of FLAMES){const d=(f.x-x)**2+(f.z-z)**2;if(d<bd){bd=d;b=f;}}return b?Math.round(Math.sqrt(bd))+' m '+dirOf(x-b.x,z-b.z)+' of '+b.name:'';};
+    const add=(cat,name,x,z,extra)=>L.push({cat,name,x,z,tower:extra&&extra.tower,sub:extra&&extra.sub});
+    try{add('Places','Mine exit',EXIT_P.x,EXIT_P.z);add('Places','Tower gate',GATE_FRONT.x,GATE_FRONT.z);add('Places','Herald arena',RESPAWN.x,RESPAWN.z);}catch(e){}
+    AREAS.forEach(A0=>{if(A0.r)add('Places',A0.name,A0.x+6,A0.z+6);});
+    FLAMES.forEach(f=>add('Keeper’s Flames',f.name,f.x+2.5,f.z+2.5,{sub:F.flames&&F.flames[f.id]?'lit':''}));
+    LDEF.forEach((Ld,i)=>{const o=lightObjs[i];if(o)add('Lights',Ld.name,o.x+4,o.z+4,{sub:got[i]?'taken':''});});
+    GUARDS.forEach(G=>{if(!G.def.final)add('Bosses',G.def.name,G.home.x+(G.home.x>0?-24:24),G.home.z,{sub:G.dead?'dead':G.elite?'elite':''});});
+    TROOMS.forEach((R,k)=>add('Tower rooms',R.name,null,null,{tower:k}));
+    KTW.forEach(T=>add('Spires',T.t.name,T.door.x+Math.sin(T.fa)*4,T.door.z+Math.cos(T.fa)*4));
+    NPCS.forEach(n=>{if(n.lines)add('People',n.name,n.x+2,n.z+2);});
+    OVLK.forEach(o=>add('Overlooks',o.name,o.x+2,o.z+2));
+    DRAFTS.forEach((D,i)=>add('Wind shrines','Wind shrine '+(i+1),D.x+3,D.z+3));
+    if(REAL&&REAL.vis&&REAL.sites){const NM={statue:'Statue',maus:'Mausoleum',graves:'Graves',walls:'Broken walls'},CT={statue:'Statues',maus:'Ruins',graves:'Ruins',walls:'Ruins'};
+      REAL.sites.forEach(q=>{const a=Math.random()*6.28,r=(q.r||6)+3;add(CT[q.k],q.nm||NM[q.k],q.x+Math.cos(a)*r,q.z+Math.sin(a)*r,{sub:near(q.x,q.z),hx:q.x});L[L.length-1].hx=q.x;L[L.length-1].hz=q.z;});}
+    else add('Ruins','Ruins and statues appear in the Realistic look',null,null,{});
+    SITES.forEach(st=>add('Swords',SWD[st.sw].name,st.x+3,st.z+3));
+    return L;}
+  function mapSideOpen(){const el=$('mapSide');el.hidden=!DEV;if(!DEV)return;MS.items=mapSideItems();$('mapFind').value='';mapSideRender();setTimeout(()=>{try{$('mapFind').focus();}catch(e){}},280);}
+  function mapSideRender(){const box=$('mapList');if(!MS.items)return;const q=$('mapFind').value.trim().toLowerCase();box.innerHTML='';const order=[];const groups={};
+    MS.items.forEach((it,i)=>{const hay=(it.name+' '+it.cat+' '+(it.sub||'')).toLowerCase();if(q&&!q.split(/\s+/).every(w=>hay.includes(w)))return;if(!groups[it.cat]){groups[it.cat]=[];order.push(it.cat);}groups[it.cat].push(i);});
+    if(!order.length){box.innerHTML='<div class="none">Nothing matches.</div>';return;}
+    order.forEach(cat=>{const h=document.createElement('h4');h.textContent=cat+' ('+groups[cat].length+')';box.appendChild(h);
+      groups[cat].forEach(i=>{const it=MS.items[i],b=document.createElement('button');b.type='button';const d=it.x==null?'':Math.round(Math.hypot(it.x-P.x,it.z-P.z));
+        b.innerHTML='<span></span><small></small>';b.firstChild.textContent=it.name+(it.sub&&!/ of /.test(it.sub)?' · '+it.sub:'');b.lastChild.textContent=it.sub&&/ of /.test(it.sub)?it.sub+(d===''?'':' · '+d+' m from you'):(d===''?'':d+' m from you');
+        if(it.sub&&/ of /.test(it.sub))b.title=it.sub+' · '+d+' m from you';
+        b.addEventListener('mouseenter',()=>{if(it.x==null)return;mapView.hl={x:it.hx!=null?it.hx:it.x,z:it.hz!=null?it.hz:it.z};drawMap();});
+        b.addEventListener('mouseleave',()=>{mapView.hl=null;drawMap();});
+        b.addEventListener('click',()=>{if(it.x==null&&it.tower==null)return;mapView.hl=null;closeOvl();if(it.tower!=null)enterTower(it.tower);else tpTo(it.x,it.z);showToast('Teleported: '+it.name);});
+        box.appendChild(b);});});}
+  $('mapFind').addEventListener('input',mapSideRender);
   function tpList(){const L=[['Mine exit',EXIT_P.x,EXIT_P.z],['Tower gate',GATE_FRONT.x,GATE_FRONT.z+0],['Herald arena',RESPAWN.x,RESPAWN.z]];
     AREAS.forEach(A0=>{if(A0.r)L.push([A0.name,A0.x+6,A0.z+6]);});
     GUARDS.forEach(G=>{if(!G.def.final)L.push([G.def.name+' ('+G.light.name+')',G.home.x+(G.home.x>0?-24:24),G.home.z]);});
@@ -5682,7 +5719,7 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
       add('fenceAPillar1',p.x+fx*(big?6:4.5)+fz*2.2,p.z+fz*(big?6:4.5)-fx*2.2,{ry:a,sink:.1});add('fenceAPillar1',p.x+fx*(big?6:4.5)-fz*2.2,p.z+fz*(big?6:4.5)+fx*2.2,{ry:a,sink:.1,rz:.12});}
     /* statues: some at overlooks, the rest in the open */
     const SK=[[2,4.4,'h'],[0,6.5,'x'],[1,4.6,'z'],[2,4.4,'h'],[0,6.5,'x'],[1,4.6,'z'],[2,4.4,'h'],[2,4.4,'h'],[1,4.6,'z']];
-    SK.forEach((d,i)=>{const o=OVLK[i*2%OVLK.length];let p=i<5&&o?pick(3,60,{x:o.x,z:o.z,d0:9,d1:10}):null;if(!p)p=pick(5,200);if(!p)return;SITES.push({x:p.x,z:p.z,k:'statue',r:5});
+    SK.forEach((d,i)=>{const o=OVLK[i*2%OVLK.length];let p=i<5&&o?pick(3,60,{x:o.x,z:o.z,d0:9,d1:10}):null;if(!p)p=pick(5,200);if(!p)return;SITES.push({x:p.x,z:p.z,k:'statue',r:5,nm:{h:'Skeleton statue',x:'Dragon statue',z:'Sleeping statue'}[d[2]]});
       (INST['st'+d[0]]=INST['st'+d[0]]||[]).push({x:p.x,y:Hq(p.x,p.z)-.15,z:p.z,ry:RR()*6.283,rx:(RR()-.5)*.06,rz:(RR()-.5)*.06,s:d[1]*(.9+RR()*.25),c:RR(),solid:true,dim:d[2]});});
     /* grave fields */
     for(let i=0;i<20;i++){const p=pick(6,170);if(!p)break;const a=RR()*6.283;SITES.push({x:p.x,z:p.z,k:'graves',r:13});graves(p.x,p.z,6+Math.floor(RR()*7),a);
