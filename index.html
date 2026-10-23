@@ -825,7 +825,7 @@ function build(saved){
   try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});}
   catch(e){$('glError').hidden=false;$('startBtn').hidden=true;return;}
   const DEF_SET={sens:1,invert:false,hints:true,fov:70,dist:4.3,shake:true,style:'Retro',scale:1,shadows:'high',view:'medium',cell:7,fps:false,vol:.9,mus:.55};
-  const BUILD='v43 · 2026-10-23 11:44';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
+  const BUILD='v44 · 2026-10-23 11:55';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
   const SET=Object.assign({},DEF_SET);
   try{const j=JSON.parse(localStorage.getItem('hollowkeep.settings')||'null');if(j&&typeof j==='object')Object.assign(SET,j);}catch(e){}
   if(SET.lookV!==3){SET.lookV=3;SET.style='Retro';}
@@ -4383,7 +4383,7 @@ function build(saved){
     el.innerHTML=L.length?'<span style="font-size:12px;opacity:.7;align-self:center">Travel to:</span>'+L.map((f,i)=>`<button type="button" data-tr="${f.id}" class="${i===travelSel?'sel':''}">${f.name}</button>`).join(''):'<span style="font-size:12px;opacity:.7">Light Keeper\'s Flames to travel between them.</span>';}
   $('travelList').addEventListener('click',e=>{const b=e.target.closest('[data-tr]');if(!b)return;const f=FLAMES.find(q=>q.id===b.dataset.tr);if(f)travelTo(f);});
   function mapExtras2(dot,label,all){(F.pins||[]).forEach(p=>{dot(p.x,p.z,'#e8c040',8,'diamond');label(p.label,p.x,p.z,'#7a5a10',12,17);});
-    if(REAL&&REAL.vis&&REAL.sites)REAL.sites.forEach(q=>label({maus:'⌂',statue:'♜',graves:'✝',walls:'⌗'}[q.k]||'·',q.x,q.z,q.k==='maus'||q.k==='statue'?'#3a3530':'#6a6258',q.k==='maus'?15:12,4));
+    if(REAL&&REAL.vis&&REAL.sites)REAL.sites.forEach(q=>{const big=q.k==='maus'||q.k==='statue',p=dot(q.x,q.z,big?'#3a332c':'#5e564c',big?8.5:6.5);label({maus:'⌂',statue:'♜',graves:'✝',walls:'≡'}[q.k]||'·',q.x,q.z,'#f4ead2',big?12:10,big?4.5:3.5,true);});
     OVLK.forEach(o=>{if((F.ovl||{})[o.id]||all)label('▲ '+o.name,o.x,o.z,'#5a4a30',11,-10);});DRAFTS.forEach(D=>{if(F.tipDraft||all)dot(D.x,D.z,'#dff4ff',4);});if(EVT.cur)dot(EVT.cur.x,EVT.cur.z,'#ffb347',6,'star');if(STAR.s&&STAR.s.landed){dot(STAR.s.x,STAR.s.z,'#ffe7a0',10,'star');label('Fallen star',STAR.s.x,STAR.s.z,'#8a6a10',12,-14);}FLAMES.forEach(f=>{const on=F.flames&&F.flames[f.id];if(!on&&!all)return;dot(f.x,f.z,on?'#ffb030':'#c4baa4',9,'star');label(f.name,f.x,f.z,'#7a4a10',12,-14);});KTW.forEach(T=>{if(!(all||F.disc[T.t.name]||F.known[T.t.name]))return;dot(T.x,T.z,T.t.col,9,'diamond');label(T.t.name,T.x,T.z,'#2a1d14',13,15);});
     const odo=NPCS.find(n=>n.shop);if(odo&&(all||odo.talked||F.disc['Old Millbrook']))label('Peddler',odo.x,odo.z,'#6a3a5a',11,-12);
     if(all)CHESTS.forEach(c=>{if(F.chest&&F.chest[c.id])return;dot(c.x,c.z,c.glint?'#ffd27a':'#a0703a',3);});}
@@ -4547,7 +4547,12 @@ function build(saved){
     const o=w2m(-TS/2,-TS/2,W);c.drawImage(mapBase,o[0],o[1],TS*mapView.zoom,TS*mapView.zoom);
     const g=c.createRadialGradient(W/2,W/2,W*.3,W/2,W/2,W*.75);g.addColorStop(0,'rgba(60,40,20,0)');g.addColorStop(1,'rgba(60,40,20,.35)');c.fillStyle=g;c.fillRect(0,0,W,W);
     const fs=Math.max(11,W*.016),all=DEV&&CHEAT.map;
-    const label=(txt,x,z,col,size,dy)=>{const p=w2m(x,z,W);c.font=`${size||fs}px Georgia,serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(236,220,184,.85)';c.strokeText(txt,p[0],p[1]+(dy||0));c.fillStyle=col||'#2a1d14';c.fillText(txt,p[0],p[1]+(dy||0));};
+    const drawL=(txt,px,py,col,sz)=>{c.font=`${sz}px Georgia,serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(236,220,184,.85)';c.strokeText(txt,px,py);c.fillStyle=col||'#2a1d14';c.fillText(txt,px,py);};
+    const LQ=[];const label=(txt,x,z,col,size,dy,force)=>{const p=w2m(x,z,W),sz=size||fs;if(force){drawL(txt,p[0],p[1]+(dy||0),col,sz);return;}LQ.push({txt,px:p[0],py:p[1]+(dy||0),col,sz,i:LQ.length});};
+    const flushLabels=()=>{const placed=[],seen={};LQ.sort((a,b)=>b.sz-a.sz||a.i-b.i);
+      for(const L of LQ){const k=L.txt.replace(/ \?$/,'');if((seen[k]||[]).some(q=>Math.hypot(q[0]-L.px,q[1]-L.py)<W*.2))continue;(seen[k]=seen[k]||[]).push([L.px,L.py]);c.font=`${L.sz}px Georgia,serif`;const w=c.measureText(L.txt).width+4,h=L.sz*.95;
+        for(const [ox,oy] of [[0,0],[0,-h*1.05],[0,h*1.05],[w*.55,0],[-w*.55,0],[0,-h*2.1],[0,h*2.1]]){const x0=L.px+ox-w/2,y0=L.py+oy-h*.8;
+          if(x0+w<0||y0+h<0||x0>W||y0>W)break;if(placed.some(r=>x0<r[0]+r[2]&&x0+w>r[0]&&y0<r[1]+r[3]&&y0+h>r[1]))continue;placed.push([x0,y0,w,h]);drawL(L.txt,L.px+ox,L.py+oy,L.col,L.sz);break;}}};
     const dot=(x,z,col,r,shape)=>{const p=w2m(x,z,W);c.fillStyle=col;c.strokeStyle='#1d1a17';c.lineWidth=1.5;c.beginPath();
       if(shape==='diamond'){c.moveTo(p[0],p[1]-r);c.lineTo(p[0]+r,p[1]);c.lineTo(p[0],p[1]+r);c.lineTo(p[0]-r,p[1]);c.closePath();}
       else if(shape==='star'){for(let k=0;k<10;k++){const a=k/10*Math.PI*2-Math.PI/2,rr=k%2?r*.45:r;c.lineTo(p[0]+Math.cos(a)*rr,p[1]+Math.sin(a)*rr);}c.closePath();}
@@ -4562,12 +4567,13 @@ function build(saved){
     NPCS.forEach(n=>{if(!n.lines)return;dot(n.x,n.z,n.talked?'#c4baa4':'#e0a043',fs*.28);label(n.name,n.x,n.z,'#4a3a2a',fs*.75,fs*1.1);});
     if(all)SITES.forEach(st=>{if(hasTier(st.sw))return;dot(st.x,st.z,'#cfe7ff',fs*.3,'diamond');label(SWD[st.sw].name,st.x,st.z,'#2c4a52',fs*.72,fs*1.2);});
     mapExtras(dot,label,all);
+    flushLabels();
     /* player */
     const pp=w2m(P.x,P.z,W),fx=-Math.sin(yaw),fz=-Math.cos(yaw),r=fs*.8;
     c.fillStyle='#b8502a';c.strokeStyle='#1d1a17';c.lineWidth=2;c.beginPath();c.moveTo(pp[0]+fx*r*1.3,pp[1]+fz*r*1.3);c.lineTo(pp[0]-fx*r*.7+fz*r*.7,pp[1]-fz*r*.7-fx*r*.7);c.lineTo(pp[0]-fx*r*.3,pp[1]-fz*r*.3);c.lineTo(pp[0]-fx*r*.7-fz*r*.7,pp[1]-fz*r*.7+fx*r*.7);c.closePath();c.fill();c.stroke();
     /* compass rose */
     c.font=`${fs*1.2}px Georgia,serif`;c.fillStyle='#2a1d14';c.textAlign='center';c.fillText('N',W-fs*2,fs*2.2);c.beginPath();c.moveTo(W-fs*2,fs*2.6);c.lineTo(W-fs*2,fs*4.4);c.strokeStyle='#2a1d14';c.stroke();
-    $('mapFoot').textContent='M or Esc close · Wheel zoom · Drag to pan · Click a lit flame to travel'+(all||ovl==='map'&&CHEAT.tpArmed?' · Click to teleport':'');}
+    $('mapFoot').textContent='M or Esc close · Wheel zoom · Drag to pan · Click a lit flame to travel'+(all||ovl==='map'&&CHEAT.tpArmed?' · Click to teleport':'')+(REAL&&REAL.vis?'  ·  ⌂ mausoleum  ♜ statue  ✝ graves  ≡ ruins':'');}
   let mDrag=null;
   mapCv.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY<0?1.25:.8;mapView.zoom=clamp(mapView.zoom*f,.08,6);drawMap();},{passive:false});
   mapCv.addEventListener('pointerdown',e=>{mDrag={x:e.clientX,y:e.clientY,cx:mapView.cx,cz:mapView.cz,moved:false};mapCv.setPointerCapture(e.pointerId);});
