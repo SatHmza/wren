@@ -825,7 +825,7 @@ function build(saved){
   try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});}
   catch(e){$('glError').hidden=false;$('startBtn').hidden=true;return;}
   const DEF_SET={sens:1,invert:false,hints:true,fov:70,dist:4.3,shake:true,style:'Retro',scale:1,shadows:'high',view:'medium',cell:7,fps:false,vol:.9,mus:.55};
-  const BUILD='v42 · 2026-10-22 23:57';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
+  const BUILD='v43 · 2026-10-23 11:44';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
   const SET=Object.assign({},DEF_SET);
   try{const j=JSON.parse(localStorage.getItem('hollowkeep.settings')||'null');if(j&&typeof j==='object')Object.assign(SET,j);}catch(e){}
   if(SET.lookV!==3){SET.lookV=3;SET.style='Retro';}
@@ -4383,6 +4383,7 @@ function build(saved){
     el.innerHTML=L.length?'<span style="font-size:12px;opacity:.7;align-self:center">Travel to:</span>'+L.map((f,i)=>`<button type="button" data-tr="${f.id}" class="${i===travelSel?'sel':''}">${f.name}</button>`).join(''):'<span style="font-size:12px;opacity:.7">Light Keeper\'s Flames to travel between them.</span>';}
   $('travelList').addEventListener('click',e=>{const b=e.target.closest('[data-tr]');if(!b)return;const f=FLAMES.find(q=>q.id===b.dataset.tr);if(f)travelTo(f);});
   function mapExtras2(dot,label,all){(F.pins||[]).forEach(p=>{dot(p.x,p.z,'#e8c040',8,'diamond');label(p.label,p.x,p.z,'#7a5a10',12,17);});
+    if(REAL&&REAL.vis&&REAL.sites)REAL.sites.forEach(q=>label({maus:'⌂',statue:'♜',graves:'✝',walls:'⌗'}[q.k]||'·',q.x,q.z,q.k==='maus'||q.k==='statue'?'#3a3530':'#6a6258',q.k==='maus'?15:12,4));
     OVLK.forEach(o=>{if((F.ovl||{})[o.id]||all)label('▲ '+o.name,o.x,o.z,'#5a4a30',11,-10);});DRAFTS.forEach(D=>{if(F.tipDraft||all)dot(D.x,D.z,'#dff4ff',4);});if(EVT.cur)dot(EVT.cur.x,EVT.cur.z,'#ffb347',6,'star');if(STAR.s&&STAR.s.landed){dot(STAR.s.x,STAR.s.z,'#ffe7a0',10,'star');label('Fallen star',STAR.s.x,STAR.s.z,'#8a6a10',12,-14);}FLAMES.forEach(f=>{const on=F.flames&&F.flames[f.id];if(!on&&!all)return;dot(f.x,f.z,on?'#ffb030':'#c4baa4',9,'star');label(f.name,f.x,f.z,'#7a4a10',12,-14);});KTW.forEach(T=>{if(!(all||F.disc[T.t.name]||F.known[T.t.name]))return;dot(T.x,T.z,T.t.col,9,'diamond');label(T.t.name,T.x,T.z,'#2a1d14',13,15);});
     const odo=NPCS.find(n=>n.shop);if(odo&&(all||odo.talked||F.disc['Old Millbrook']))label('Peddler',odo.x,odo.z,'#6a3a5a',11,-12);
     if(all)CHESTS.forEach(c=>{if(F.chest&&F.chest[c.id])return;dot(c.x,c.z,c.glint?'#ffd27a':'#a0703a',3);});}
@@ -4535,6 +4536,7 @@ function build(saved){
     c.translate(R,R);c.rotate(yaw);const pi=(P.x+TS/2)/TSTEP,pj=(P.z+TS/2)/TSTEP;c.imageSmoothingEnabled=true;c.drawImage(mapBase,-pi*sc,-pj*sc,mapBase.width*sc,mapBase.height*sc);
     const dot=(x,z,col,r,edge)=>{let u=(x-P.x)*mpm,v=(z-P.z)*mpm;const l=Math.hypot(u,v);if(l>R-6){if(!edge)return;u*=(R-6)/l;v*=(R-6)/l;}c.fillStyle=col;c.strokeStyle='#1d1a17';c.lineWidth=1.2;c.beginPath();c.arc(u,v,r,0,6.283);c.fill();c.stroke();};
     FLAMES.forEach(f=>{if(F.flames&&F.flames[f.id])dot(f.x,f.z,'#ffb030',3.5);});
+    if(REAL&&REAL.vis&&REAL.sites)REAL.sites.forEach(q=>dot(q.x,q.z,q.k==='statue'?'#d8d2c4':'#8d867c',q.k==='maus'?3.5:2.6));
     GUARDS.forEach(G=>{if(G.def.world&&!G.dead&&(F.wbKnown||F.disc[G.def.name.replace('The ','')+"'s Lair"]))dot(G.home.x,G.home.z,G.elite?'#ff2a5a':'#a02a1a',4);});
     if(F.horse&&!PL.horse)dot(HORSE.x,HORSE.z,'#8a5a33',3.5,true);(F.pins||[]).forEach(p=>dot(p.x,p.z,'#e8c040',3.5,true));if(EVT.cur&&EVT.cur.stage<9)dot(EVT.cur.x,EVT.cur.z,'#ffb347',4,true);
     if(SET.guide!==false){const o=objective();if(o&&o.main)dot(o.x,o.z,'#ffe07a',4.5,true);}
