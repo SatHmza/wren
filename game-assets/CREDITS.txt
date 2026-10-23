@@ -1,0 +1,20 @@
+Hollow Keep - Realistic look asset credits
+
+Graveyard pack (tombstones, obelisks, sarcophagi, mausoleums, dead trees, stump, fence pillar)
+and Village pack walls (wall, wall arch, wall corner):
+  Babylon.js Assets, https://github.com/BabylonJS/Assets - CC BY 4.0
+  Textures desaturated and pieces combined into props/ruins.glb.
+
+Broadleaf bark photo (used for detail/bark.jpg and the pine card trunk):
+  Babylon.js Assets - CC BY 4.0
+
+Statues (Dragon, Hosmer, Le Transi de Rene de Chalon):
+  Three D Scans, https://threedscans.com - free, no copyright restrictions
+  Simplified for the game in props/statues.glb.
+
+Stork (flying birds and crows): three.js examples (mirada.com / RO.ME project).
+Brick photo for detail/brick.jpg: three.js examples.
+
+Everything else (sky images, ground photos, grass, oak tree, rocks, planks) came from
+Hamza's own assets folder (Poly Haven, ambientCG, Textures.com sources).
+Pine card and fir branch texture: made for this game.
