@@ -648,9 +648,9 @@ const CITY={x:0,z:0,y:520,isl:[],br:[]};const GIANT={x:0,z:0,ax:1,az:0,S:.56};co
 const MIRE={x:0,z:0};{const S=OUT.S,a=Math.atan2(-S.z,-S.x);MIRE.x=S.x+Math.cos(a)*250;MIRE.z=S.z+Math.sin(a)*250;}
 const MAWL={};{const M=OUT.M,a=Math.atan2(-M.z,-M.x);MAWL.a=a;MAWL.top={x:M.x+Math.cos(a)*80,z:M.z+Math.sin(a)*80};MAWL.mid={x:M.x+Math.cos(a)*62,z:M.z+Math.sin(a)*62};MAWL.bot={x:M.x+Math.cos(a)*48,z:M.z+Math.sin(a)*48};}
 const CAVES=[];
-{const defs=[['Ember Hollow','#ff8a3a','cave'],['The Glittering Deep','#7fdcff','cave'],['Rootwarren','#7dff6a','cave'],['Frostvein Grotto','#bfe9ff','cave'],['Bonepit Cave','#e8dcc0','cave'],['Mirecrawl','#9ad04a','cave'],['The Old Well','#5fd6ff','well'],['Sunken Cistern','#5fd6ff','well'],['Cinder Tunnels','#ff6a2a','cave']];
+{const defs=[['Ember Hollow','#ff8a3a','cave'],['The Glittering Deep','#7fdcff','cave'],['Rootwarren','#7dff6a','cave'],['Frostvein Grotto','#bfe9ff','cave'],['Bonepit Cave','#e8dcc0','cave'],['Mirecrawl','#9ad04a','cave'],['The Old Well','#5fd6ff','well'],['Sunken Cistern','#5fd6ff','well'],['Cinder Tunnels','#ff6a2a','cave'],['Wolfden Hollow','#e0b47a','cave'],['The Moonlit Grotto','#b8a8ff','cave'],['The Weeping Caves','#7fe0cc','cave'],["Smuggler's Tunnel",'#ffcf7a','cave'],['Echo Chasm','#ff9ad0','cave']];
   const corners=[[-1,1],[1,-1],[-1,-1]];
-  defs.forEach((d,i)=>{const [sx,sz]=corners[i%3],slot=Math.floor(i/3),S={x:sx*(2790+slot*360),z:sz*2780},ch=[],rads=[12,15,13,18];
+  defs.forEach((d,i)=>{const [sx,sz]=corners[i%3],slot=Math.floor(i/3),S=i<9?{x:sx*(2790+slot*360),z:sz*2780}:{x:sx*(2790+Math.floor((i-9)/3)*400),z:sz*3260},ch=[],rads=[12,15,13,18];
     for(let k=0;k<4;k++)ch.push({x:S.x+sx*Math.sin(k*1.7+i)*18,z:S.z+sz*k*46,r:rads[(k+i)%4]+(k===3?3:0)});
     const circ=ch.map(c=>({x:c.x,z:c.z,r:c.r}));for(let k=0;k<3;k++){const A=ch[k],B=ch[k+1],L=Math.hypot(B.x-A.x,B.z-A.z);for(let q=0;q<=L;q+=3){const t=q/L;circ.push({x:lerp(A.x,B.x,t),z:lerp(A.z,B.z,t),r:4.6});}}
     let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;circ.forEach(c=>{x0=Math.min(x0,c.x-c.r-30);x1=Math.max(x1,c.x+c.r+30);z0=Math.min(z0,c.z-c.r-30);z1=Math.max(z1,c.z+c.r+30);});
@@ -738,7 +738,9 @@ const FORGE=polar(742,1.6);
 const TR_H=260,TROOMS=[0,1,2,3,4,5,6,7].map(k=>({k,x:2800+(k%4)*125,z:2840+Math.floor(k/4)*150,r:24}));
 const KT=[{name:'The Ember Spire',col:'#ff8a3a',ang:2.95,r:1540,sx:-1,sz:1,plan:[['hound','hound','brute'],['wisp','wisp','hound','hound'],['brute','brute']],reward:'ash_heart'},
   {name:'The Rime Spire',col:'#9fe6ff',ang:-1.5,r:1560,sx:1,sz:-1,plan:[['knight','knight'],['knight','wisp','wisp'],['knight','knight','brute']],reward:'warden'},
-  {name:'The Verdant Spire',col:'#7dff6a',ang:.95,r:1480,sx:-1,sz:-1,plan:[['hound','hound','hound'],['wisp','wisp','wisp','knight'],['brute','hound','hound']],reward:'keeper_eye'}];
+  {name:'The Verdant Spire',col:'#7dff6a',ang:.95,r:1480,sx:-1,sz:-1,plan:[['hound','hound','hound'],['wisp','wisp','wisp','knight'],['brute','hound','hound']],reward:'keeper_eye'},
+  {name:'The Ashen Watch',col:'#ff6a4a',ang:.05,r:1920,sx:1,sz:1,plan:[['knight','hound','hound'],['knight','knight','wisp'],['brute','knight','knight']],reward:'iron_ring'},
+  {name:'The Hollow Bell',col:'#c89aff',ang:-2.45,r:1180,sx:-1,sz:1,plan:[['wisp','wisp','hound'],['wisp','wisp','wisp','hound'],['brute','wisp','wisp']],reward:'owl_feather'}];
 KT.forEach(t=>{let p=polar(t.r,t.ang),k=0;while(k++<80&&(rawH(p.x,p.z)<3||lakeNear(p.x,p.z,40)||riverDist(p.x,p.z)<40))p=polar(t.r+((k*37)%240-120),t.ang+((k*53)%30-15)/100);t.x=p.x;t.z=p.z;t.base=Math.max(3,rawH(p.x,p.z));});
 const KROOMS=[];
 const ROOMS_ALL=TROOMS.concat(KROOMS);
@@ -825,7 +827,7 @@ function build(saved){
   try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});}
   catch(e){$('glError').hidden=false;$('startBtn').hidden=true;return;}
   const DEF_SET={sens:1,invert:false,hints:true,fov:70,dist:4.3,shake:true,style:'Retro',scale:1,shadows:'high',view:'medium',cell:7,fps:false,vol:.9,mus:.55};
-  const BUILD='v47 · 2026-10-25 21:52';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
+  const BUILD='v48 · 2026-10-25 22:40';try{const bt=document.getElementById('buildTag');if(bt)bt.textContent='Build '+BUILD;console.log('Hollow Keep build',BUILD);}catch(e){}
   const SET=Object.assign({},DEF_SET);
   try{const j=JSON.parse(localStorage.getItem('hollowkeep.settings')||'null');if(j&&typeof j==='object')Object.assign(SET,j);}catch(e){}
   if(SET.lookV!==3){SET.lookV=3;SET.style='Retro';}
@@ -1885,7 +1887,7 @@ function build(saved){
 
   /* caves: decor in the far corners, entrances out in the valley */
   {const rockM=new THREE.MeshLambertMaterial({color:'#4a4440'}),ceilM=new THREE.MeshBasicMaterial({color:'#030304',side:THREE.DoubleSide});
-    const seeds=[polar(900,-.95),polar(1720,2.05),polar(1250,-2.55),polar(1650,-1.25),polar(2800,.4),null,null,null,polar(2400,2.95)];
+    const seeds=[polar(900,-.95),polar(1720,2.05),polar(1250,-2.55),polar(1650,-1.25),polar(2800,.4),null,null,null,polar(2400,2.95),polar(1060,.28),polar(1520,-.6),polar(800,2.55),polar(1880,1.5),polar(1340,-2.05)];
     CAVES.forEach((C,i)=>{const g=new THREE.Group();world.add(g);g.visible=false;C.g=g;const cm=new THREE.MeshBasicMaterial({color:C.col}),SG=[],CR=[],CE=[];
       C.ch.forEach((c,k)=>{CE.push(new THREE.CircleGeometry(c.r+6,24).rotateX(Math.PI/2).translate(c.x,C.f+13,c.z));
         for(let q=0;q<Math.round(c.r*1.3);q++){const a=rand(0,6.283),r=c.r-rand(.2,1.5),x=c.x+Math.cos(a)*r,z=c.z+Math.sin(a)*r;if(cvD(C,x,z)>-.6&&k>0&&k<3&&false)continue;SG.push(new THREE.ConeGeometry(rand(.5,1.3),rand(2,5.5),6).translate(x,C.f+1.5,z));}
@@ -1900,7 +1902,7 @@ function build(saved){
       else{const sd=seeds[i];let best=null,bs=-1;for(let q=0;q<160;q++){const a=q*2.399,r=Math.sqrt(q)*18,x=sd.x+Math.cos(a)*r,z=sd.z+Math.sin(a)*r,h=Hq(x,z);if(h<6||lakeNear(x,z,20))continue;const sl=Math.abs(Hq(x+6,z)-Hq(x-6,z))+Math.abs(Hq(x,z+6)-Hq(x,z-6));if(sl>bs){bs=sl;best={x,z};}}ent=best||sd;}
       if(C.kind==='well'&&i===7){buildWell(ent.x,ent.z,true);}
       const ey=Hq(ent.x,ent.z),dh=Math.atan2(Hq(ent.x+4,ent.z)-Hq(ent.x-4,ent.z),Hq(ent.x,ent.z+4)-Hq(ent.x,ent.z-4)),fa=dh+Math.PI;C.fa=fa;C.ent={x:ent.x,z:ent.z,y:ey};C.out={x:ent.x+Math.sin(fa)*(C.kind==='well'?3:5),z:ent.z+Math.cos(fa)*(C.kind==='well'?3:5)};
-      if(C.kind!=='well'){const eg=new THREE.Group();eg.position.set(ent.x,ey,ent.z);eg.rotation.y=fa;world.add(eg);
+      if(C.kind!=='well'){const eg=new THREE.Group();C.eg=eg;eg.position.set(ent.x,ey,ent.z);eg.rotation.y=fa;world.add(eg);
         for(const sd of [-1,1]){const b=mesh(new THREE.DodecahedronGeometry(2.6,0),rockM,sd*3.2,1.8,0,eg);b.scale.set(.8,1.4,1);}mesh(new THREE.DodecahedronGeometry(3,0),rockM,0,5,-.4,eg).scale.set(1.8,.7,1);
         mesh(new THREE.PlaneGeometry(4.2,4.6),new THREE.MeshBasicMaterial({color:'#020203'}),0,2.3,-.6,eg,false);mesh(new THREE.BoxGeometry(.15,1.6,.15),woodMat,2.3,.8,.8,eg);addFlame(2.3,1.75,.8,.8,eg);
         CIRC.push({x:ent.x+Math.cos(fa)*3.2,z:ent.z-Math.sin(fa)*3.2,r:2},{x:ent.x-Math.cos(fa)*3.2,z:ent.z+Math.sin(fa)*3.2,r:2});CLEAR.push({x:ent.x,z:ent.z,r:10});}});}
@@ -4019,7 +4021,7 @@ function build(saved){
       wb_rider:['Pell the shepherd',['The Rider only comes out at night. Before it charges, lines of light cross the ground. Step out of them.','My sheep will not go near the road after dark.']],
       wb_bog:['Marsh-wife Ida',['The Bog Mother drinks from the mud when you stand back. Stay on her or she heals.','She calls little lights to help her. Kill those first.']]};
     WB.forEach(G=>{const h=HINT[G.def.id];if(!h)return;const p=near(G.home,46,Math.atan2(-G.home.z,-G.home.x));addNPC({name:h[0],x:p.x,z:p.z,look:{robe:pick(PILGRIM_ROBES),hat:pick(['hood','straw','cap']),staff:1,lamp:1},lines:[h[1].slice(0,1),h[1].slice(1)],marks:[[G.def.name.replace('The ','')+"'s Lair"],[]]});});
-    const SH=[['Ansel the climber',"The Ember Spire is out in the ash. Three floors, and the keepers left something at the top."],['Rook',"The Rime Spire stands in the snow. Every floor is colder than the last. The top was where the keepers kept their best armor."],['Fern',"The Verdant Spire? Green light at the top, every night. My grandmother said a keeper's eye is kept up there."]];
+    const SH=[['Ansel the climber',"The Ember Spire is out in the ash. Three floors, and the keepers left something at the top."],['Rook',"The Rime Spire stands in the snow. Every floor is colder than the last. The top was where the keepers kept their best armor."],['Fern',"The Verdant Spire? Green light at the top, every night. My grandmother said a keeper's eye is kept up there."],['Ser Brannoc',"The Ashen Watch was a castle once. The walls fell but the tower held. Soldiers still guard every floor."],['Old Wenna',"The Hollow Bell rings by itself at night. Wisps nest inside. Whatever they guard at the top, I want no part of it."]];
     KTW.forEach((T,i)=>{const p=near(T,30,T.fa+.6);addNPC({name:SH[i][0],x:p.x,z:p.z,look:{robe:pick(ROBES),hat:'cap',capC:'#6a5a4a',pack:'#6a4a2a',staff:1},lines:[[SH[i][1]],["From the top you can see every great enemy in the valley. Worth the climb."]],marks:[[T.t.name],[]]});});
     const V1=VILLAGES[1];const odo=addNPC({name:'Odo the peddler',x:V1.x-6,z:V1.z+5,face:0,look:{robe:'#6a3a5a',hat:'straw',pack:'#8a6a3a',sash:'#c9a85a',lamp:1},shop:true,
       lines:[["Embers! I take embers. Ash in, treasure out. Have a look."]]});
@@ -4154,7 +4156,7 @@ function build(saved){
     $('jourMain').innerHTML=main.map(m=>row(m[0],m[1],m[2])).join('');
     const WB=GUARDS.filter(G=>G.def.world);$('jourWB').innerHTML=WB.map(G=>row(!!F.gdead[G.i],(F.gdead[G.i]||F.wbKnown||F.disc[G.def.name.replace('The ','')+"'s Lair"])?G.def.name:'Unknown')).join('');
     const nf=Object.keys(F.flames||{}).length,ns=Object.keys(F.kreward||{}).length,nc=CAVES.filter(C=>C.plan.every((pl,k)=>!pl.length||(F.cvc||{})[C.i+'_'+k])).length,nch=Object.keys(F.chest||{}).length;
-    $('jourEx').innerHTML=row(nf===FLAMES.length,"Keeper's Flames lit",nf+' / '+FLAMES.length)+row(ns===3,'Keeper spires climbed',ns+' / 3')+row(nc===CAVES.length,'Caves and wells cleared',nc+' / '+CAVES.length)
+    $('jourEx').innerHTML=row(nf===FLAMES.length,"Keeper's Flames lit",nf+' / '+FLAMES.length)+row(ns===KT.length,'Keeper spires climbed',ns+' / '+KT.length)+row(nc===CAVES.length,'Caves and wells cleared',nc+' / '+CAVES.length)
       +row(!!F.disc['Aevum, the Drifting City'],'Reach the drifting city')+row(!!F.gdead[GUARDS.findIndex(G=>G.def.deco==='dragon')],'Slay the Elder Wyrm')
       +row(Object.keys(F.lore||{}).length===LORE.length,'Lore pages',Object.keys(F.lore||{}).length+' / '+LORE.length)+row(nch===CHESTS.length,'Chests and glints',nch+' / '+CHESTS.length)+row(false,'Places discovered',Object.keys(F.disc).length)+row(false,'Skill points to spend',F.sp||0);
     let next='';if(!F.map)next="Bren left his map on a crate by the lift. Grab it and press M.";else if(ng<6){const i=LDEF.findIndex((L,k)=>!got[k]);const L=LDEF[i],o=lightObjs[i];next=`${L.name} is still out there, ${dirWord(P,o)}. Its guardian will not give it up easily.`;}
@@ -4346,7 +4348,7 @@ function build(saved){
   /* ---------- 12/13. almost-done and next time ---------- */
   function almostList(){const nf=Object.keys(F.flames||{}).length,nl=Object.keys(F.lore||{}).length,nch=Object.keys(F.chest||{}).length,ns=Object.keys(F.kreward||{}).length,
       nc=CAVES.filter(C=>C.plan.every((pl,k)=>!pl.length||(F.cvc||{})[C.i+'_'+k])).length,WB=GUARDS.filter(G=>G.def.world),nw=WB.filter(G=>F.gdead[G.i]).length,no=Object.keys(F.ovl||{}).length,ng=got.filter(Boolean).length;
-    return [["Lights",ng,6],["Keeper's Flames",nf,FLAMES.length],['Lore pages',nl,LORE.length],['Chests and glints',nch,CHESTS.length],['Caves cleared',nc,CAVES.length],['Spires climbed',ns,3],['Great enemies',nw,WB.length],['Overlooks',no,OVLK.length]]
+    return [["Lights",ng,6],["Keeper's Flames",nf,FLAMES.length],['Lore pages',nl,LORE.length],['Chests and glints',nch,CHESTS.length],['Caves cleared',nc,CAVES.length],['Spires climbed',ns,KT.length],['Great enemies',nw,WB.length],['Overlooks',no,OVLK.length]]
       .filter(a=>a[1]<a[2]&&a[1]/a[2]>=.5).sort((a,b)=>(a[2]-a[1])-(b[2]-b[1]));}
   function fillNext(){const el=$('nextCard');if(!el)return;const o=objective(),a=almostList().slice(0,2);
     el.innerHTML='<b>Next time</b><span>'+(o.main?o.label+', '+dirWord(P,o)+' of you':'The outer lands still hide great enemies and elites at night')+'</span>'+(a.length?'<span>Almost there: '+a.map(x=>x[0]+' '+x[1]+' / '+x[2]).join(' · ')+'</span>':'')+(F.pins&&F.pins.length?'<span>'+F.pins.length+' places marked on your map</span>':'');}
@@ -4383,7 +4385,7 @@ function build(saved){
     el.innerHTML=L.length?'<span style="font-size:12px;opacity:.7;align-self:center">Travel to:</span>'+L.map((f,i)=>`<button type="button" data-tr="${f.id}" class="${i===travelSel?'sel':''}">${f.name}</button>`).join(''):'<span style="font-size:12px;opacity:.7">Light Keeper\'s Flames to travel between them.</span>';}
   $('travelList').addEventListener('click',e=>{const b=e.target.closest('[data-tr]');if(!b)return;const f=FLAMES.find(q=>q.id===b.dataset.tr);if(f)travelTo(f);});
   function mapExtras2(dot,label,all){(F.pins||[]).forEach(p=>{dot(p.x,p.z,'#e8c040',8,'diamond');label(p.label,p.x,p.z,'#7a5a10',12,17);});
-    if(REAL&&REAL.vis&&REAL.sites)REAL.sites.forEach(q=>{const big=q.k==='maus'||q.k==='statue',p=dot(q.x,q.z,big?'#3a332c':'#5e564c',big?8.5:6.5);label({maus:'⌂',statue:'♜',graves:'✝',walls:'≡'}[q.k]||'·',q.x,q.z,'#f4ead2',big?12:10,big?4.5:3.5,true);});
+    if(REAL&&REAL.vis&&REAL.sites)REAL.sites.forEach(q=>{const big=q.k==='maus'||q.k==='statue',p=dot(q.x,q.z,big?'#3a332c':'#5e564c',big?8.5:6.5);label({maus:'⌂',statue:'♜',graves:'✝',walls:'≡',castle:'♖'}[q.k]||'·',q.x,q.z,'#f4ead2',big?12:10,big?4.5:3.5,true);});
     OVLK.forEach(o=>{if((F.ovl||{})[o.id]||all)label('▲ '+o.name,o.x,o.z,'#5a4a30',11,-10);});DRAFTS.forEach(D=>{if(F.tipDraft||all)dot(D.x,D.z,'#dff4ff',4);});if(EVT.cur)dot(EVT.cur.x,EVT.cur.z,'#ffb347',6,'star');if(STAR.s&&STAR.s.landed){dot(STAR.s.x,STAR.s.z,'#ffe7a0',10,'star');label('Fallen star',STAR.s.x,STAR.s.z,'#8a6a10',12,-14);}FLAMES.forEach(f=>{const on=F.flames&&F.flames[f.id];if(!on&&!all)return;dot(f.x,f.z,on?'#ffb030':'#c4baa4',9,'star');label(f.name,f.x,f.z,'#7a4a10',12,-14);});KTW.forEach(T=>{if(!(all||F.disc[T.t.name]||F.known[T.t.name]))return;dot(T.x,T.z,T.t.col,9,'diamond');label(T.t.name,T.x,T.z,'#2a1d14',13,15);});
     const odo=NPCS.find(n=>n.shop);if(odo&&(all||odo.talked||F.disc['Old Millbrook']))label('Peddler',odo.x,odo.z,'#6a3a5a',11,-12);
     if(all)CHESTS.forEach(c=>{if(F.chest&&F.chest[c.id])return;dot(c.x,c.z,c.glint?'#ffd27a':'#a0703a',3);});}
@@ -4614,11 +4616,12 @@ function build(saved){
     LDEF.forEach((Ld,i)=>{const o=lightObjs[i];if(o)add('Lights',Ld.name,o.x+4,o.z+4,{sub:got[i]?'taken':''});});
     GUARDS.forEach(G=>{if(!G.def.final)add('Bosses',G.def.name,G.home.x+(G.home.x>0?-24:24),G.home.z,{sub:G.dead?'dead':G.elite?'elite':''});});
     TROOMS.forEach((R,k)=>add('Tower rooms',R.name,null,null,{tower:k}));
-    KTW.forEach(T=>add('Spires',T.t.name,T.door.x+Math.sin(T.fa)*4,T.door.z+Math.cos(T.fa)*4));
+    KTW.forEach(T=>add('Spires and towers',T.t.name,T.door.x+Math.sin(T.fa)*4,T.door.z+Math.cos(T.fa)*4,{sub:(F.kreward||{})[T.ti]?'climbed':''}));
+    CAVES.forEach(C=>{if(C.ent)add('Caves',C.name,C.out.x,C.out.z,{sub:C.kind==='well'?'well':''});});
     NPCS.forEach(n=>{if(n.lines)add('People',n.name,n.x+2,n.z+2);});
     OVLK.forEach(o=>add('Overlooks',o.name,o.x+2,o.z+2));
     DRAFTS.forEach((D,i)=>add('Wind shrines','Wind shrine '+(i+1),D.x+3,D.z+3));
-    if(REAL&&REAL.vis&&REAL.sites){const NM={statue:'Statue',maus:'Mausoleum',graves:'Graves',walls:'Broken walls'},CT={statue:'Statues',maus:'Ruins',graves:'Ruins',walls:'Ruins'};
+    if(REAL&&REAL.vis&&REAL.sites){const NM={statue:'Statue',maus:'Mausoleum',graves:'Graves',walls:'Broken walls',castle:'Castle ruins'},CT={statue:'Statues',maus:'Ruins',graves:'Ruins',walls:'Ruins',castle:'Ruins'};
       REAL.sites.forEach(q=>{const a=Math.random()*6.28,r=(q.r||6)+3;add(CT[q.k],q.nm||NM[q.k],q.x+Math.cos(a)*r,q.z+Math.sin(a)*r,{sub:near(q.x,q.z),hx:q.x});L[L.length-1].hx=q.x;L[L.length-1].hz=q.z;});}
     else add('Ruins','Ruins and statues appear in the Realistic look',null,null,{});
     FINDS.forEach(c=>add('Caches',{satchel:'Lost satchel',cairn:'Cairn cache',camp:'Abandoned camp'}[c.kind],c.x+2,c.z+2,{sub:(F.chest||{})[c.id]?'taken':near(c.x,c.z)}));
@@ -5746,6 +5749,11 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
       if(RR()<.45)add(RR()<.5?'sarcophagus':'sarcophagusOpen',p.x+Math.cos(a)*5,p.z-Math.sin(a)*5,{ry:a+(RR()-.5)*.4,sink:.12,s:1.1});
       if(RR()<.7)add(DEADT[Math.floor(RR()*2)],p.x+Math.cos(a)*-6,p.z-Math.sin(a)*-6,{ry:RR()*6.28,s:1.5+RR()*.6,sink:.2});
       if(RR()<.4)add('stump1',p.x+Math.sin(a)*8,p.z+Math.cos(a)*8,{ry:RR()*6.28,sink:.1});}
+    /* ruined castle walls around the newer spires */
+    KTW.forEach(T=>{if(T.ti<3)return;const R=26,fa=T.fa;for(let sd=0;sd<4;sd++){const a=fa+sd*Math.PI/2,cxw=T.x+Math.sin(a)*R,czw=T.z+Math.cos(a)*R,tx=Math.cos(a),tz=-Math.sin(a);
+        for(let k=-2;k<=2;k++){const x=cxw+tx*k*9.4,z=czw+tz*k*9.4;if(sd===0&&k===0){add('wallArch',x,z,{ry:a,s:1.6,sink:.1});continue;}if(RR()<.18)continue;add('wall',x,z,{ry:a+(RR()-.5)*.05,rz:(RR()-.5)*.06,s:1.9+RR()*.25,sink:.2+RR()*.9});}
+        add('wallCorner',T.x+Math.sin(a+Math.PI/4)*R*1.414,T.z+Math.cos(a+Math.PI/4)*R*1.414,{ry:a+Math.PI,s:1.9,sink:.2});}
+      SITES.push({x:T.x,z:T.z,k:'castle',r:30});});
     /* fallen walls */
     const WP=['wall','wallArch','wallCorner'];
     for(let i=0;i<16;i++){const p=pick(7,170);if(!p)break;const a=RR()*6.283,ca=Math.cos(a),sa=Math.sin(a),n=2+Math.floor(RR()*3);SITES.push({x:p.x,z:p.z,k:'walls',r:13});let used=0;
@@ -5788,7 +5796,7 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
         const dir=Math.sign(F.sp);b.w.position.set(x,y,z);b.w.rotation.set(0,-a+(dir<0?Math.PI:0),-dir*.3,'YXZ');b.mx.update(dt);});});}
   function rlDetail(L){const D=REAL.det;if(!D)return;REAL.txo=REAL.txo||{};for(const k in D){const T=TX[k];if(!T)continue;if(!REAL.txo[k])REAL.txo[k]=T.image;const want=L?D[k]:REAL.txo[k];if(T.image!==want){T.image=want;T.magFilter=L?THREE.LinearFilter:THREE.NearestFilter;T.needsUpdate=true;}}}
   function rlLeafTex(){const c=document.createElement('canvas');c.width=c.height=32;const x=c.getContext('2d');x.fillStyle='#fff';x.beginPath();x.ellipse(16,16,14,7,.6,0,6.283);x.fill();const t=new THREE.CanvasTexture(c);return t;}
-  function rlApply(on){const L=!!(on&&REAL.loaded);REAL.vis=L;rlDetail(L);if(REAL.birds)REAL.birds.g.visible=L;cloudMesh.visible=!L;
+  function rlApply(on){const L=!!(on&&REAL.loaded);REAL.vis=L;rlDetail(L);if(REAL.birds)REAL.birds.g.visible=L;CAVES.forEach(C=>{if(C.eg)C.eg.children.forEach(ch=>{if(ch.geometry&&ch.geometry.type==='DodecahedronGeometry')ch.visible=!L;});});cloudMesh.visible=!L;
     if(L&&!REAL.leaf)REAL.leaf=rlLeafTex();lvMat.map=L?REAL.leaf:null;lvMat.alphaTest=L?.5:0;lvMat.size=lvMat.userData.base*(L?.7:1);lvMat.needsUpdate=true;
     {const tm=L?THREE.ACESFilmicToneMapping:THREE.NoToneMapping;renderer.toneMappingExposure=L?.78:1;if(renderer.toneMapping!==tm){renderer.toneMapping=tm;scene.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m)m.needsUpdate=true;});});}}
     skyU.uHdOn.value=L?1:0;if(REAL.tMat)TCH.forEach(t=>{t.material=L?REAL.tMat:REAL.tMat0;});
@@ -5922,7 +5930,12 @@ const col=c==='y'?'#ffd84a':'#ff3a2a';tellEl.style.setProperty('--tc',col);tellT
       const A=p.pts[p.seg],B=p.pts[1-p.seg],L=Math.hypot(B.x-A.x,B.z-A.z)||1;p.u+=dt*1.5/L;if(p.u>=1){p.u=0;p.seg=1-p.seg;}
       c.x=lerp(A.x,B.x,p.u);c.z=lerp(A.z,B.z,p.u);}}
   /* --- master tick --- */
-  function updateFeel(dt){FEEL.t+=dt;updateButterflies(dt);updateMist(dt);updateShafts(dt);updateCaches(dt);updatePatrols(dt);if(REAL&&REAL.fauna)updateFauna(dt);}
+  /* Realistic: big scanned boulders frame every cave mouth */
+  CAVES.forEach((C,ci)=>{if(C.kind==='well'||!C.ent)return;const fa=C.fa,cs=Math.cos(fa),sn=Math.sin(fa),R=mulberry32(500+ci);
+    [[-3.6,-.6,3.0,0],[3.6,-.6,3.0,0],[0,-1.4,3.4,3.6],[-6.4,-1.6,2.6,0],[6.6,-1.8,2.6,0],[-4.6,-5,3.4,0],[4.8,-5.2,3.2,0],[0,-7.4,4.4,1.5],[-9.4,-.4,1.6,0],[9.2,.2,1.5,0]].forEach(([lx,lz,sc,up])=>{const x=C.ent.x+lx*cs+lz*sn,z=C.ent.z-lx*sn+lz*cs;rocks.push({x,z,y:Hq(C.ent.x,C.ent.z)+up+(up?0:Hq(x,z)-Hq(C.ent.x,C.ent.z)),s:sc*(.85+R()*.3),c:R(),r:R()*6.28});});});
+  const CAVE_TORCH=new THREE.PointLight('#ffb36a',0,30,1.4);scene.add(CAVE_TORCH);
+  function updateCaveTorch(){const on=inTower&&TROOM&&TROOM.cave;CAVE_TORCH.intensity=on?1.5*(.9+.1*Math.sin(FEEL.t*11)*Math.sin(FEEL.t*4.7)):0;if(on)CAVE_TORCH.position.set(P.x+Math.sin(wren.face)*.6,P.feet+2.4,P.z+Math.cos(wren.face)*.6);}
+  function updateFeel(dt){FEEL.t+=dt;updateCaveTorch();updateButterflies(dt);updateMist(dt);updateShafts(dt);updateCaches(dt);updatePatrols(dt);if(REAL&&REAL.fauna)updateFauna(dt);}
   function updateLife(dt){GRS.uT.value+=dt;const out=state==='play'&&!inTower&&!inCave&&!onSky(P.x,P.z,P.feet);GRS.im.visible=out;GRS.fl.visible=out&&!(REAL&&REAL.vis);for(const k in CLT)CLT[k].visible=out;
     if(out&&Math.hypot(P.x-GRS.cx,P.z-GRS.cz)>(REAL&&REAL.vis?8:5)){placeGrass();placeClutter();}
     const fd=out?sstep(.45,.65,forestDensity(P.x,P.z))*(nightF<.6?1:.4):0;leaves.visible=fd>.02;if(leaves.visible){const t=GRS.uT.value;
