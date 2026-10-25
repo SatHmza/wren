@@ -12,7 +12,10 @@ Statues (Dragon, Hosmer, Le Transi de Rene de Chalon):
   Three D Scans, https://threedscans.com - free, no copyright restrictions
   Simplified for the game in props/statues.glb.
 
-Stork (flying birds and crows): three.js examples (mirada.com / RO.ME project).
+Stork (flying birds and crows) and Horse (wild horse herds): three.js examples (mirada.com / RO.ME project).
+
+Fox (props/fox.glb): model by PixelMannen (CC0), rigging and animation by tomkranis (CC BY 4.0),
+  glTF conversion by @AsoboStudio and @scurest (CC BY 4.0), via KhronosGroup glTF-Sample-Assets.
 Brick photo for detail/brick.jpg: three.js examples.
 
 Everything else (sky images, ground photos, grass, oak tree, rocks, planks) came from
